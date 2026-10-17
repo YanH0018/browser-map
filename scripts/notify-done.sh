@@ -68,10 +68,12 @@ end tell
 import os
 os.environ["BODY"] = body
 os.environ["TO"] = to
+# NB: "to" is an AppleScript keyword and names are case-insensitive,
+# so the recipient variable must NOT be named TO/to.
 script = '''
 set BODY to system attribute "BODY"
-set TO to system attribute "TO"
-''' + applescript
+set ADDR to system attribute "TO"
+''' + applescript.replace("address:TO", "address:ADDR")
 subprocess.run(["osascript", "-e", script], check=False)
 PYEOF
 
