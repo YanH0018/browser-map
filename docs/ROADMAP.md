@@ -8,7 +8,7 @@
   real tabs render as cards on the canvas; own extension tab excluded;
   favicon letter-avatar fallback; 2/2 e2e in real Chromium
   (`docs/assets/m1-workspace.png`).
-- [ ] **M2 — Spatial organization**: dragging; clusters; tab-to-cluster
+- [x] **M2 — Spatial organization**: dragging; clusters; tab-to-cluster (merged fad08a3, ralph loop × 7 iterations)
   movement; persistent layout.
 - [ ] **M3 — Workspace functionality**: search; workspace snapshots;
   improved restoration; better tab synchronization.
