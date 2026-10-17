@@ -28,6 +28,11 @@ export function domainFromUrl(url: string): string {
   }
 }
 
+/** True when the tab belongs to this extension itself (e.g. workspace.html). */
+export function isOwnExtensionTab(url: string | undefined, ownOrigin: string): boolean {
+  return !!url && url.startsWith(ownOrigin);
+}
+
 /** Normalize one browser tab into a WorkspaceTab. */
 export function normalizeTab(tab: BrowserTabLike, position: Position): WorkspaceTab {
   const url = tab.url ?? '';
@@ -47,9 +52,12 @@ export function normalizeTab(tab: BrowserTabLike, position: Position): Workspace
 /** Query all open browser tabs and normalize them. */
 export async function queryWorkspaceTabs(existing: WorkspaceTab[] = []): Promise<WorkspaceTab[]> {
   const byUrl = new Map(existing.map((t) => [t.url, t]));
+  // The extension's own pages (workspace.html etc.) are real tabs too;
+  // they must never appear as cards on the canvas.
+  const ownOrigin = browser.runtime.getURL('');
   const tabs = await browser.tabs.query({});
   return tabs
-    .filter((t) => t.id !== undefined && t.url !== undefined)
+    .filter((t) => t.id !== undefined && t.url !== undefined && !isOwnExtensionTab(t.url, ownOrigin))
     .map((t, i) => {
       // Preserve a known position for tabs we have seen before.
       const prior = byUrl.get(t.url!);

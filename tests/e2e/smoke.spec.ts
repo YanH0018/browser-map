@@ -1,15 +1,19 @@
 import { test, expect, chromium, type BrowserContext } from '@playwright/test';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
- * Smoke test: launch Chromium with the built extension and confirm the
- * background service worker registers. Skipped until M1 — the real e2e
- * scenarios are listed in tests/e2e/README.md.
+ * M1 acceptance smoke test: launch Chromium with the built extension,
+ * confirm the background service worker registers, open the workspace
+ * page and verify the app shell renders. A headed window appears briefly.
  *
  * Requires: npm run build   (extension at .output/chrome-mv3)
  */
 
-const extensionPath = path.resolve(__dirname, '../../.output/chrome-mv3');
+const extensionPath = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../.output/chrome-mv3',
+);
 
 let context: BrowserContext;
 
@@ -27,8 +31,24 @@ test.afterAll(async () => {
   await context?.close();
 });
 
-test.fixme('extension service worker starts', async () => {
+test('extension service worker starts', async () => {
   let worker = context.serviceWorkers()[0];
   if (!worker) worker = await context.waitForEvent('serviceworker');
   expect(worker.url()).toContain('chrome-extension://');
+});
+
+test('workspace page renders the app shell', async () => {
+  let worker = context.serviceWorkers()[0];
+  if (!worker) worker = await context.waitForEvent('serviceworker');
+  const extensionId = new URL(worker.url()).host;
+
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/workspace.html`);
+
+  await expect(page.locator('.bw-toolbar input[type="search"]')).toBeVisible();
+  await expect(page.locator('.bw-canvas')).toBeVisible();
+  await expect(page.locator('.bw-inspector')).toBeVisible();
+
+  // Evidence for the visual-inspection loop (M5 builds on this).
+  await page.screenshot({ path: 'test-results/m1-workspace.png', fullPage: true });
 });

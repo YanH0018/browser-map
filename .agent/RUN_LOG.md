@@ -55,3 +55,49 @@ Notes:              lms server ON :1234. Qwen3.8-27B-MLX-5bit (19.44 GB)
                     Superseded: partial MLX-8bit download (5.28 GB) pending
                     cancellation + cleanup.
 ```
+
+---
+
+```
+Task:               M1 — spatial tab view (own-tab exclusion, favicon fallback)
+Model:              Qwen Code (local CLI agent), LM Studio MLX-5bit runtime available
+Elapsed time:       ~10 min
+Tool calls:         ~12
+Build attempts:     1 (PASS on first run)
+Failed tests:       0 (22/22 pass, vitest; +5 new isOwnExtensionTab tests)
+Self-recovered:     0
+Human intervention: 0
+Final commit:       (this entry)
+Status:             PASS
+Notes:              lib/browserAdapter.ts excludes the extension's own tabs
+                    via isOwnExtensionTab(url, browser.runtime.getURL('')) so
+                    workspace.html never renders as a canvas card;
+                    components/TabNode.tsx falls back to a colored letter
+                    avatar (deterministic hue from domain/title) when
+                    favIconUrl is empty; tests/browserAdapter.test.ts covers
+                    own-origin match, sub-pages, web pages, undefined url,
+                    and foreign extension origin. Check loop green:
+                    compile + 22/22 tests + wxt build (.output/chrome-mv3,
+                    441 kB). Remaining M1: manual verification in real
+                    Chromium.
+```
+
+---
+
+```
+Task:               M1 acceptance — real-Chromium verification + merge
+Model:              Kimi (cloud agent) supervising; Playwright headed run
+Elapsed time:       ~3 min
+Build attempts:     0 (reused green build)
+Failed tests:       1 (ESM __dirname in smoke spec — fixed with
+                    import.meta.url, self-recovered)
+Self-recovered:     1
+Human intervention: 0 (Alex pre-authorized acceptance + merge)
+Final commit:       (merge into main — see git log)
+Status:             PASS
+Notes:              2/2 e2e in headed Chromium: MV3 service worker
+                    registers; workspace.html renders toolbar/canvas/
+                    inspector; about:blank appears as card with the
+                    letter-avatar fallback; workspace.html itself
+                    correctly excluded. Evidence: docs/assets/m1-workspace.png
+```

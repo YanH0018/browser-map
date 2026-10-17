@@ -5,9 +5,9 @@ Format: `[ ] task (milestone)` — mark `[x]` with the commit hash when done.
 
 ## Now (M1 — Spatial tab view)
 
-- [ ] Verify live tab query → card rendering on real Chromium (M1)
-- [ ] Card click activates the real browser tab (M1)
-- [ ] Favicon rendering fallbacks for chrome:// and missing icons (M1)
+- [x] Verify live tab query → card rendering on real Chromium (`65ac108`, e2e `3d4b4c8`)
+- [x] Favicon rendering fallbacks for chrome:// and missing icons (`65ac108`)
+- [ ] Card click activates the real browser tab — wired in InspectorPanel; needs e2e coverage (M1/M2 boundary)
 
 ## Next (M2 — Spatial organization)
 
