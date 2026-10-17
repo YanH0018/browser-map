@@ -27,10 +27,23 @@ Format: `[ ] task (milestone)` — mark `[x]` with the commit hash when done.
 M2 complete: all four items verified end-to-end (compile, 32/32 unit,
 build, e2e 3/3 green at `60e9463`).
 
+## Done (M3 — Workspace functionality)
+
+- [x] Search box filters canvas live (M3) — store-driven `searchQuery`
+      + `selectVisibleTabs` in the canvas (scaffold `17d277d`); filter
+      predicate unit-tested in `tests/search.test.ts`
+- [x] Named workspace snapshots (save / restore / delete) (`a880f4a`) —
+      separate `namedSnapshots` storage key; restore replaces canvas
+      state only (never opens/closes real tabs); 9 unit tests for the
+      pure helpers + store actions; e2e smoke still green (4/4)
+- [x] Card click activates the real browser tab (`3213892`) — see M1
+      section above; e2e asserts the real tab becomes active
+
+M3 complete: all three items verified (compile, 41/41 unit, build,
+e2e 4/4 at `a880f4a`).
+
 ## Later
 
-- [ ] Search box filters canvas live (M3)
-- [ ] Named workspace snapshots (save / switch) (M3)
 - [ ] Tab create/remove/title/URL sync hardening (M4)
 - [ ] Multi-window behavior (M4)
 - [ ] Real Playwright e2e suite per `tests/e2e/README.md` (M4)

@@ -1,7 +1,9 @@
 # CURRENT_TASK.md
 
-- **Task**: M3 — Workspace functionality (branch `feature/m3`, create from `main`)
-- **Status**: active (started 2026-10-17, engine: pi coding agent)
+- **Task**: M3 — Workspace functionality
+- **Status**: done (2026-10-17, engine: pi coding agent) — all three items
+  implemented and verified; see archive below. Next backlog: M4 (tab
+  sync hardening, multi-window).
 
 ## M3 task statement
 

@@ -188,3 +188,36 @@ Notes:              tests/e2e/smoke.spec.ts gains the M2 acceptance test:
                     Branch feature/clusters ready for human merge;
                     next backlog: M1-boundary card-click e2e, then M3.
 ```
+
+---
+
+```
+Task:               M3 iteration 2 — named snapshots unit tests, closes M3
+Model:              pi coding agent (fresh-context loop)
+Elapsed time:       ~10 min
+Tool calls:         ~25
+Build attempts:     1 (compile PASS first try)
+Failed tests:       0 (41/41 pass after adding 9 new; e2e 4/4)
+Self-recovered:     0
+Human intervention: 0
+Final commit:       a880f4a (feat + tests) on main; task files separate
+Status:             PASS
+Notes:              Iteration 1 (same loop) had left uncommitted M3 item-2
+                    work on main: NamedSnapshot type, lib/namedSnapshots.ts
+                    (pure create/deserialize), workspaceStorage key
+                    'namedSnapshots' (separate from live workspaceSnapshot),
+                    store actions save/restore/deleteNamedSnapshot, Toolbar
+                    Save-snapshot prompt + Restore/Delete chips, debounced
+                    persistence in App. This iteration added the required
+                    unit tests: tests/namedSnapshots.test.ts (4) and a
+                    named-snapshot describe block in workspaceStore.test.ts
+                    (5: capture, same-name update-in-place, restore replaces
+                    canvas state without resurrecting closed tabs / touching
+                    new live tabs, unknown-id no-op, delete by id).
+                    Check loop green: compile, 41/41 unit, wxt build
+                    (445.25 kB), e2e 4/4 in Chromium.
+                    M3 complete: item 1 search filter (scaffold 17d277d +
+                    tests/search.test.ts), item 2 named snapshots (a880f4a),
+                    item 3 card-click activate (3213892, e2e).
+                    Next backlog: M4 — tab sync hardening, multi-window.
+```
