@@ -39,6 +39,12 @@ tmux split-window -h -t agent "
   done"
 
 tmux split-window -v -t agent -p 30
+
+# live inference activity from the LM Studio server log (token streams,
+# prompt processing) — the per-token "is it thinking right now" view
+tmux split-window -v -t agent.1 \
+  "tail -n 30 -F \"\$(ls -t ~/.lmstudio/server-logs/*/*.log | head -1)\" | grep --line-buffered -E 'Streaming|Finished|Estimated Token|Prompt processing'"
+
 tmux select-pane -t agent.0
 
 echo "cockpit ready — attach with: tmux attach -t agent   (detach: Ctrl+B, D)"
