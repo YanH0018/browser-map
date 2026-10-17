@@ -59,9 +59,12 @@ export async function queryWorkspaceTabs(existing: WorkspaceTab[] = []): Promise
   return tabs
     .filter((t) => t.id !== undefined && t.url !== undefined && !isOwnExtensionTab(t.url, ownOrigin))
     .map((t, i) => {
-      // Preserve a known position for tabs we have seen before.
+      // Preserve workspace state (position + cluster assignment) for tabs
+      // we have seen before; resync must not wipe user arrangement.
       const prior = byUrl.get(t.url!);
-      return normalizeTab(t, prior?.position ?? nextFreePosition(i));
+      const normalized = normalizeTab(t, prior?.position ?? nextFreePosition(i));
+      if (prior?.clusterId !== undefined) normalized.clusterId = prior.clusterId;
+      return normalized;
     });
 }
 
