@@ -16,10 +16,14 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-export PATH="/opt/homebrew/bin:$HOME/Library/Application Support/kimi-desktop/daimon-share/daimon/npm-global/bin:$PATH"
+# ~/.bun/bin is where the pi coding agent lives.
+export PATH="/opt/homebrew/bin:$HOME/.bun/bin:$HOME/Library/Application Support/kimi-desktop/daimon-share/daimon/npm-global/bin:$PATH"
 export OPENAI_API_KEY="${OPENAI_API_KEY:-lm-studio}"
 export OPENAI_BASE_URL="${OPENAI_BASE_URL:-http://localhost:1234/v1}"
 export OPENAI_MODEL="${OPENAI_MODEL:-qwen3.8-27b-mlx}"
+# Engine is swappable: qwen-code (default) or pi, e.g.
+#   AGENT_CMD="pi --print --no-session --model lm_studio/qwen3.8-27b-mlx" scripts/agent.sh
+AGENT_CMD="${AGENT_CMD:-qwen --yolo -p}"
 
 # --- preflight: inference plane reachable, model available ----------------
 if ! curl -sf -m 5 "$OPENAI_BASE_URL/models" | grep -q "$OPENAI_MODEL"; then
@@ -64,6 +68,7 @@ Working rules:
 # --- run, with the transcript kept for .agent/RUN_LOG.md --------------------
 mkdir -p .agent/runs
 LOG=".agent/runs/$(date +%Y%m%d-%H%M%S).log"
-echo "▶ agent starting — model: $OPENAI_MODEL @ $OPENAI_BASE_URL"
+echo "▶ agent starting — engine: $AGENT_CMD"
+echo "  model: $OPENAI_MODEL @ $OPENAI_BASE_URL"
 echo "  transcript: $LOG   (watch live: tail -f $LOG)"
-exec qwen --yolo -p "$PROMPT" 2>&1 | tee "$LOG"
+exec $AGENT_CMD "$PROMPT" 2>&1 | tee "$LOG"

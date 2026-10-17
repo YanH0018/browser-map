@@ -26,10 +26,13 @@ MAX_STALLS="${MAX_STALLS:-3}"
 
 # NOTE: do NOT add coreutils' gnubin to PATH — its unprefixed GNU date
 # shadows BSD date and breaks the `-j -f` parsing in last_activity_epoch.
-export PATH="/opt/homebrew/bin:$HOME/Library/Application Support/kimi-desktop/daimon-share/daimon/npm-global/bin:$PATH"
+# ~/.bun/bin is where the pi coding agent lives.
+export PATH="/opt/homebrew/bin:$HOME/.bun/bin:$HOME/Library/Application Support/kimi-desktop/daimon-share/daimon/npm-global/bin:$PATH"
 export OPENAI_API_KEY="${OPENAI_API_KEY:-lm-studio}"
 export OPENAI_BASE_URL="${OPENAI_BASE_URL:-http://localhost:1234/v1}"
 export OPENAI_MODEL="${OPENAI_MODEL:-qwen3.8-27b-mlx}"
+# Engine is swappable: qwen-code (default) or pi, e.g.
+#   AGENT_CMD="pi --print --no-session --model lm_studio/qwen3.8-27b-mlx" scripts/ralph.sh
 AGENT_CMD="${AGENT_CMD:-qwen --yolo -p}"
 
 mkdir -p .agent/runs
