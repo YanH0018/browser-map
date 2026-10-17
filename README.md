@@ -4,11 +4,6 @@ A spatial browser tab and workspace management system — browser tabs as
 cards on a 2D canvas instead of a one-dimensional strip, where
 **position itself encodes meaning** ("the robotics papers are over there").
 
-This repository is simultaneously:
-
-1. a real software product (Chromium extension, Firefox/Safari later);
-2. the first real project of a local agentic development environment
-   (see `AGENTS.md` and `.agent/POLICY.md`).
 
 ## Stack
 
