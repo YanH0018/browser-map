@@ -4,8 +4,8 @@
 # state (TASK DONE / circuit breaker / iteration cap), runs the check
 # loop as an independent verification, then emails Alex the outcome.
 #
-# Lives inside the cockpit tmux session (scripts/watch.sh window) so its
-# lifecycle is tied to the session — no orphaned background processes.
+# Lives inside the cockpit tmux session so its lifecycle is tied to the
+# session — no orphaned background processes.
 #
 #   scripts/notify-done.sh [email]
 
@@ -15,10 +15,13 @@ cd "$(dirname "$0")/.."
 TO="${1:-vvin732@icloud.com}"
 export PATH="/opt/homebrew/bin:$PATH"
 
+# The real loop runs as "bash scripts/ralph.sh"; tmux launcher wrappers
+# mention ralph.sh in their argv too, so match the full bash invocation.
 echo "watchdog armed — waiting for the agent loop to exit…"
-while pgrep -f "ralph.sh" >/dev/null 2>&1 || pgrep -f "qwen --yolo" >/dev/null 2>&1; do
+while pgrep -f "bash scripts/ralph.sh" >/dev/null 2>&1; do
   sleep 60
 done
+sleep 5  # let the last agent process flush its log
 echo "loop exited at $(date '+%H:%M:%S') — verifying and reporting"
 
 # --- independent check loop -------------------------------------------------
@@ -30,10 +33,13 @@ BRANCH=$(git branch --show-current)
 GITLOG=$(git log --oneline -8)
 STATUS=$(git status --short | head -10)
 METRICS=$(cat .agent/runs/loop-*.jsonl 2>/dev/null | tail -10)
-DIFFSTAT=$(git diff main..."$BRANCH" --stat 2>/dev/null | tail -15)
+LASTLOG=$(ls -t .agent/runs/2*-iter*.log 2>/dev/null | head -1)
+DONE=$(grep -l "TASK DONE" .agent/runs/2*-iter*.log 2>/dev/null | tail -1)
+VERDICT=$([ -n "$DONE" ] && echo "TASK DONE (in $DONE)" || echo "NO TASK DONE — check metrics")
 
-BODY="M2 agent loop finished on branch $BRANCH.
+BODY="M4 agent loop finished on branch $BRANCH (engine: pi).
 
+Verdict: $VERDICT
 Independent check loop:  compile=$COMPILE  test=$TEST  build=$BUILD
 
 === recent commits ===
@@ -45,27 +51,16 @@ ${STATUS:-clean}
 === iteration metrics ===
 $METRICS
 
-=== diff vs main ===
-$DIFFSTAT
-
 The branch is NOT merged yet — final review is yours (per .agent/POLICY.md).
 Reply to Kimi when you are back and it will run acceptance + merge + push.
 
 — ralph watchdog on your M5 Max"
 
 # --- email via Mail.app (uses the Mac's configured account) -----------------
+send_mail() {
 python3 - "$TO" "$BODY" << 'PYEOF'
-import subprocess, sys
+import subprocess, sys, os
 to, body = sys.argv[1], sys.argv[2]
-applescript = '''
-tell application "Mail"
-  set m to make new outgoing message with properties {subject:"[browser-map] M2 loop finished — report attached", content:BODY, visible:false}
-  tell m to make new to recipient at end of to recipients with properties {address:TO}
-  send m
-end tell
-'''
-# pass strings via environment to avoid AppleScript injection
-import os
 os.environ["BODY"] = body
 os.environ["TO"] = to
 # NB: "to" is an AppleScript keyword and names are case-insensitive,
@@ -73,8 +68,24 @@ os.environ["TO"] = to
 script = '''
 set BODY to system attribute "BODY"
 set ADDR to system attribute "TO"
-''' + applescript.replace("address:TO", "address:ADDR")
-subprocess.run(["osascript", "-e", script], check=False)
+tell application "Mail"
+  set m to make new outgoing message with properties {subject:"[browser-map] M4 loop finished — report attached", content:BODY, visible:false}
+  tell m to make new to recipient at end of to recipients with properties {address:ADDR}
+  send m
+end tell
+'''
+r = subprocess.run(["osascript", "-e", script], check=False)
+sys.exit(r.returncode)
 PYEOF
+}
+
+# Mail.app can drop AppleEvents when the Mac has been idle — wake it and
+# retry once before giving up.
+if ! send_mail; then
+  echo "first send failed — waking Mail and retrying in 30s"
+  open -g -a Mail 2>/dev/null || true
+  sleep 30
+  send_mail && echo "retry succeeded" || echo "retry FAILED — report left in .agent/runs/"
+fi
 
 echo "report emailed to $TO"

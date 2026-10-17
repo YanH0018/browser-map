@@ -1,39 +1,42 @@
 # CURRENT_TASK.md
 
-- **Task**: M3 — Workspace functionality
-- **Status**: done (2026-10-17, engine: pi coding agent) — all three items
-  implemented and verified; see archive below. Next backlog: M4 (tab
-  sync hardening, multi-window).
+- **Task**: M4 — Robust browser synchronization (branch `feature/m4`)
+- **Status**: active (started 2026-10-17, engine: pi coding agent)
 
-## M3 task statement
+## M4 task statement
 
-Make the workspace genuinely usable day-to-day: find tabs fast, save and
-restore named layouts, and make cards control the real browser. Scope:
+Make the canvas a live mirror of the real browser: whatever happens in
+Chrome shows up on the canvas without a reload, and user arrangement
+survives it. Scope:
 
-1. **Live search filter** — a search box on the workspace canvas; typing
-   filters tab cards by title and URL (case-insensitive, matches as-you-
-   type; non-matching cards hidden or dimmed, clusters always visible).
-   Store-driven (`searchQuery` in the workspace store), covered by unit
-   tests for the filter predicate.
-2. **Named snapshots** — save the current layout (tab set, positions,
-   clusters, viewport) under a user-chosen name; list saved snapshots;
-   restore one (replaces current canvas state, does NOT open/close real
-   browser tabs); delete one. Persist via the existing storage layer
-   (`wxt/utils/storage`), separate key from the live `workspaceSnapshot`.
-   Unit tests for the save/restore/delete store actions.
-3. **Card click activates the real tab** (M1-boundary backlog item) —
-   clicking a tab card focuses the real browser tab via
-   `chrome.tabs.update(tabId, {active: true})` (+ its window). Add an
-   `activateTab` to `lib/browserAdapter.ts` and cover the wiring in the
-   e2e smoke spec.
+1. **Tab identity by tabId, not URL** — the current resync matches
+   known tabs by URL (`lib/browserAdapter.ts queryWorkspaceTabs`), so a
+   tab that navigates loses its position and cluster. Key persisted
+   state by tabId; keep URL only as display data. Migration: existing
+   snapshots still load (fall back to URL match when tabId unknown).
+2. **Live events** — subscribe to `chrome.tabs` events and keep the
+   store in sync:
+   - `onCreated` → new card appears (next free position, no overlap);
+   - `onRemoved` → card disappears (its cluster assignment goes too,
+     clusters themselves stay);
+   - `onUpdated` (URL/title) → card text updates in place, position and
+     cluster preserved;
+   - `onActivated` → canvas selection follows the real active tab.
+   Debounce bursts (e.g. restoring a closed window fires many events).
+3. **Multi-window behavior** — track `windowId` on each card; all
+   windows' tabs appear on the canvas. A small window badge/label on the
+   card is enough; no per-window grouping required yet.
+4. **Tests** — unit tests for the identity migration and the event→store
+   reducers (mock the chrome.tabs events); extend the e2e smoke spec for
+   at least: open a new tab → card appears; close it → card gone;
+   navigate a tab → position/cluster preserved.
 
 Rules: check loop (`npm run compile && npm test && npm run build &&
-npm run test:e2e`) green before each commit; work on `feature/m3`;
+npm run test:e2e`) green before each commit; work on `feature/m4`;
 ordinary commits allowed; do NOT push or merge. See .agent/POLICY.md.
 
-## M2 archive
+## M3 archive
 
-M2 (drag persistence, cluster grouping) complete — 7 iterations,
-merged to `main` as `fad08a3`. Details in `.agent/RUN_LOG.md`.
-Known flake logged in `.agent/TASKS.md`: e2e reload-restore can fail
-once on a cold build (suspected hydration race).
+M3 (search filter, named snapshots, click-to-activate) complete —
+2 iterations with the pi engine, merged to `main` (`a971d37`).
+Details in `.agent/RUN_LOG.md`.
