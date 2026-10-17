@@ -36,3 +36,22 @@ Notes:              WXT + React + XYFlow + Zustand + Vitest scaffold;
                     LM Studio 0.4.26 installed, quarantine removed, daemon
                     needs one GUI launch before `lms server start` works.
 ```
+
+---
+
+```
+Task:               Inference plane — LM Studio primary runtime online
+Model:              Kimi (cloud agent), Alex opened LM Studio GUI once
+Elapsed time:       ~10 min
+Human intervention: 1 (GUI first launch + server toggle)
+Final commit:       (this entry)
+Status:             PASS
+Notes:              lms server ON :1234. Qwen3.8-27B-MLX-5bit (19.44 GB)
+                    fetched via aria2 16-connection download (~160 MiB/s vs
+                    5.3 MB/s single-stream) directly into ~/.lmstudio/models;
+                    loaded in 17.45 s; live inference verified via
+                    /v1/chat/completions (identifier "qwen3.8-27b-mlx").
+                    Ollama qwen3.8:27b remains as fallback (:11434).
+                    Superseded: partial MLX-8bit download (5.28 GB) pending
+                    cancellation + cleanup.
+```
