@@ -83,6 +83,20 @@ body {
   margin-top: 4px;
 }
 
+.bw-tab-avatar {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  line-height: 14px;
+  text-align: center;
+  border-radius: 3px;
+  margin-right: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  vertical-align: -2px;
+}
+
 .bw-cluster-node {
   border: 1px dashed #4a5265;
   border-radius: 12px;
