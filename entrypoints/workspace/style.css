@@ -1,0 +1,94 @@
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #0f1115;
+  color: #e6e6e6;
+}
+
+.bw-app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr 300px;
+  grid-template-areas:
+    'toolbar toolbar'
+    'canvas inspector';
+  height: 100%;
+}
+
+.bw-toolbar {
+  grid-area: toolbar;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #262a33;
+}
+
+.bw-toolbar input[type='search'] {
+  flex: 1;
+  max-width: 420px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #333947;
+  background: #171a21;
+  color: inherit;
+}
+
+.bw-toolbar button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #333947;
+  background: #1d212b;
+  color: inherit;
+  cursor: pointer;
+}
+
+.bw-canvas {
+  grid-area: canvas;
+}
+
+.bw-inspector {
+  grid-area: inspector;
+  border-left: 1px solid #262a33;
+  padding: 12px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.bw-tab-card {
+  width: 240px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #1d212b;
+  border: 1px solid #333947;
+  font-size: 13px;
+}
+
+.bw-tab-card .bw-tab-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bw-tab-card .bw-tab-domain {
+  color: #8a93a5;
+  margin-top: 4px;
+}
+
+.bw-cluster-node {
+  border: 1px dashed #4a5265;
+  border-radius: 12px;
+  padding: 8px;
+  color: #aab3c4;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
