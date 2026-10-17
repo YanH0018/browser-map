@@ -221,3 +221,42 @@ Notes:              Iteration 1 (same loop) had left uncommitted M3 item-2
                     item 3 card-click activate (3213892, e2e).
                     Next backlog: M4 — tab sync hardening, multi-window.
 ```
+
+---
+
+```
+Task:               M4 iteration 2 — tab identity by tabId (item 1),
+                    verify + commit iteration-1 work
+Model:              pi coding agent (fresh-context loop)
+Elapsed time:       ~12 min
+Tool calls:         ~30
+Build attempts:     2 (1st compile: 3 TS errors — tuple-typed
+                   ACCEPTED_SNAPSHOT_VERSIONS.includes + test fixture
+                   missing optional clusterId; fixed, 2nd PASS)
+Failed tests:       3 (D6-era assertions "no ephemeral tabId" in
+                   namedSnapshots/persistence/workspaceStore tests —
+                   updated to D9 tabId-keyed expectations)
+Self-recovered:     2 (type errors + stale test assertions, same run)
+Human intervention: 0
+Final commit:       c01a453 on feature/m4 (code + tests + docs);
+                   task files separate
+Status:             PASS
+Notes:              Iteration 1 had left uncommitted M4 item-1 work on
+                   feature/m4: lib/tabIdentity.ts (sanitizePersistedTab(s)
+                   + resolveTabState — tabId-first matching, URL fallback
+                   only for v1/stale entries, each persisted entry
+                   consumed at most once), PersistedTabMetadata.tabId?,
+                   SNAPSHOT_VERSION 2 + ACCEPTED_SNAPSHOT_VERSIONS [1,2],
+                   browserAdapter.queryWorkspaceTabs and
+                   persistence.applySnapshotToTabs both routed through
+                   resolveTabState, namedSnapshots sanitize on load,
+                   D9 ADR + ARCHITECTURE identity-rule update. This
+                   iteration fixed the 3 compile errors, updated the 3
+                   D6-era tests to assert tabId IS persisted (D9), and
+                   verified the full loop: compile, 54/54 unit (12 new
+                   tabIdentity tests), wxt build (446.32 kB), e2e 4/4 in
+                   Chromium — including the previously flaky reload-restore
+                   test, now green on a cold load. Remaining M4: item 2
+                   live chrome.tabs event reducers + debounce, item 3
+                   multi-window badge, item 4 e2e open/close/navigate.
+```

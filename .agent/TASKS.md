@@ -27,6 +27,20 @@ Format: `[ ] task (milestone)` — mark `[x]` with the commit hash when done.
 M2 complete: all four items verified end-to-end (compile, 32/32 unit,
 build, e2e 3/3 green at `60e9463`).
 
+## Now (M4 — Robust browser synchronization)
+
+- [x] Tab identity by tabId, not URL (M4) — `lib/tabIdentity.ts`
+      (`resolveTabState`, tabId-first + URL fallback for v1/stale ids),
+      shared by snapshot restore and live resync; snapshot version 2,
+      v1 still loads (D9, `c01a453`); 12 unit tests in
+      `tests/tabIdentity.test.ts`
+- [ ] Live chrome.tabs events → store (M4) — onCreated/onRemoved/
+      onUpdated/onActivated reducers + debounce; unit tests with mocked
+      events
+- [ ] Multi-window behavior (M4) — windowId on cards, small badge/label
+- [ ] e2e: open tab → card appears; close → gone; navigate →
+      position/cluster preserved (M4)
+
 ## Done (M3 — Workspace functionality)
 
 - [x] Search box filters canvas live (M3) — store-driven `searchQuery`
@@ -44,8 +58,6 @@ e2e 4/4 at `a880f4a`).
 
 ## Later
 
-- [ ] Tab create/remove/title/URL sync hardening (M4)
-- [ ] Multi-window behavior (M4)
 - [ ] Real Playwright e2e suite per `tests/e2e/README.md` (M4)
 - [ ] Visual test loop: screenshot → vision-model inspection (M5)
 - [ ] Keyboard navigation + accessibility pass (M5)
