@@ -36,3 +36,7 @@ build, e2e 3/3 green at `60e9463`).
 - [ ] Automatic layout algorithms (M6)
 - [ ] Local embeddings + semantic clustering (M7)
 - [ ] Natural-language workspace commands via local model (M8)
+
+## Known issues
+
+- [ ] e2e `reload restores positions and clusters` flaked once right after a fresh build (clusterId undefined post-reload); passes on rerun, 3/3 green on main. Suspected hydration/resync race on cold extension load — harden with an explicit wait-for-hydration in the test or store.
