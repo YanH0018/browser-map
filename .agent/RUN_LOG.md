@@ -155,3 +155,36 @@ Notes:              renameCluster/deleteCluster store actions; delete
                     cluster, reload workspace page, assert positions +
                     clusters restored) — last M2 slice.
 ```
+
+---
+
+```
+Task:               M2 iteration 7 — e2e reload-restore proof (item 4),
+                    closes M2
+Model:              Qwen Code (local CLI agent)
+Elapsed time:       ~15 min
+Tool calls:         ~20
+Build attempts:     1 (compile PASS first try)
+Failed tests:       1 e2e run (new M2 test failed: snapshot key missing
+                   from chrome.storage.local — root cause was the test
+                   helper reading 'local:workspaceSnapshot' while
+                   wxt/utils/storage stores under raw key
+                   'workspaceSnapshot'; app persistence was correct)
+Self-recovered:     1 (test helper key fix, same run)
+Human intervention: 0
+Final commit:       60e9463 on feature/clusters (test); this run-log
+                   entry + task files committed separately
+Status:             PASS
+Notes:              tests/e2e/smoke.spec.ts gains the M2 acceptance test:
+                    two uniquely-URL'd data: tabs, create cluster via
+                    toolbar (prompt), mouse-drag Alpha card onto the
+                    cluster node, read snapshot from storage (assign +
+                    geometry), reload workspace page, assert cards and
+                    cluster render back with the card inside the cluster
+                    rect, then re-read storage to prove no position drift.
+                    Check loop green: compile, 32/32 unit, wxt build
+                    (443.04 kB), e2e smoke 3/3 in headed Chromium.
+                    M2 complete — all four items verified end-to-end.
+                    Branch feature/clusters ready for human merge;
+                    next backlog: M1-boundary card-click e2e, then M3.
+```
