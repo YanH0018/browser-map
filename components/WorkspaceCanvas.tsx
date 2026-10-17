@@ -31,7 +31,7 @@ export default function WorkspaceCanvas() {
       id: c.id,
       type: 'cluster',
       position: c.position,
-      data: { name: c.name },
+      data: { cluster: c },
       style: { width: c.size.width, height: c.size.height },
       selectable: false,
       draggable: false,

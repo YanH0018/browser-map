@@ -11,10 +11,14 @@ Format: `[ ] task (milestone)` — mark `[x]` with the commit hash when done.
 
 ## Next (M2 — Spatial organization)
 
-- [ ] Drag cards; persist positions (M2)
-- [ ] Cluster creation / rename / delete UI (M2)
-- [ ] Assign tab to cluster by drag (drop detection) (M2)
-- [ ] Restore full layout after workspace reload (M2)
+- [ ] Drag cards; persist positions (M2) — pipeline + resync leak fixed
+      (`a911fff`), viewport persisted; needs e2e proof of reload restore
+- [x] Cluster creation / rename / delete UI (M2) — create existed;
+      rename/delete added this iteration (delete unassigns members,
+      never closes tabs)
+- [x] Assign tab to cluster by drag (drop detection) (`35c7e76`)
+- [ ] Restore full layout after workspace reload (M2) — unit-covered;
+      extend e2e smoke spec to prove it in Chromium
 
 ## Later
 
