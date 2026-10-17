@@ -24,6 +24,8 @@ export interface WorkspaceState {
   setTabs: (tabs: WorkspaceTab[]) => void;
   moveTab: (tabId: number, position: Position) => void;
   createCluster: (name: string, position: Position) => WorkspaceCluster;
+  renameCluster: (clusterId: string, name: string) => void;
+  deleteCluster: (clusterId: string) => void;
   assignTab: (tabId: number, clusterId: string | undefined) => void;
   removeTab: (tabId: number) => void;
   selectTab: (tabId: number | null) => void;
@@ -57,6 +59,19 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
     set((s) => ({ clusters: [...s.clusters, cluster] }));
     return cluster;
   },
+
+  renameCluster: (clusterId, name) =>
+    set((s) => ({
+      clusters: s.clusters.map((c) => (c.id === clusterId ? { ...c, name } : c)),
+    })),
+
+  // Deleting a cluster unassigns its member cards; it never closes real
+  // browser tabs.
+  deleteCluster: (clusterId) =>
+    set((s) => ({
+      clusters: s.clusters.filter((c) => c.id !== clusterId),
+      tabs: s.tabs.map((t) => (t.clusterId === clusterId ? { ...t, clusterId: undefined } : t)),
+    })),
 
   assignTab: (tabId, clusterId) =>
     set((s) => ({

@@ -41,6 +41,31 @@ describe('workspaceStore', () => {
     expect(s.tabs[0]?.clusterId).toBe(cluster.id);
   });
 
+  it('renames a cluster', () => {
+    useWorkspaceStore.getState().setTabs([tab({ tabId: 1 })]);
+    const cluster = useWorkspaceStore.getState().createCluster('Thesis', { x: 0, y: 0 });
+    useWorkspaceStore.getState().renameCluster(cluster.id, 'Thesis v2');
+    const s = useWorkspaceStore.getState();
+    expect(s.clusters).toHaveLength(1);
+    expect(s.clusters[0]?.name).toBe('Thesis v2');
+  });
+
+  it('deleting a cluster unassigns its member tabs but keeps them', () => {
+    useWorkspaceStore.getState().setTabs([
+      tab({ tabId: 1 }),
+      tab({ tabId: 2, url: 'https://b.example.com', domain: 'b.example.com' }),
+    ]);
+    const cluster = useWorkspaceStore.getState().createCluster('Work', { x: 0, y: 0 });
+    useWorkspaceStore.getState().assignTab(1, cluster.id);
+    useWorkspaceStore.getState().deleteCluster(cluster.id);
+    const s = useWorkspaceStore.getState();
+    expect(s.clusters).toHaveLength(0);
+    // Both cards remain; the former member is unassigned, the other untouched.
+    expect(s.tabs).toHaveLength(2);
+    expect(s.tabs.find((t) => t.tabId === 1)?.clusterId).toBeUndefined();
+    expect(s.tabs.find((t) => t.tabId === 2)?.clusterId).toBeUndefined();
+  });
+
   it('removing a tab also clears its selection', () => {
     useWorkspaceStore.getState().setTabs([tab({ tabId: 1 })]);
     useWorkspaceStore.getState().selectTab(1);

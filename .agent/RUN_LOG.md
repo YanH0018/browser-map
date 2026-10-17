@@ -101,3 +101,90 @@ Notes:              2/2 e2e in headed Chromium: MV3 service worker
                     letter-avatar fallback; workspace.html itself
                     correctly excluded. Evidence: docs/assets/m1-workspace.png
 ```
+
+---
+
+```
+Task:               M2 iteration 4 — cluster drop detection + resync leak fix
+Model:              Qwen Code (local CLI agent)
+Elapsed time:       ~12 min
+Tool calls:         ~25
+Build attempts:     2 (1st compile: 3 TS errors — node.measured optional
+                   fields + test excess property; fixed, 2nd PASS)
+Failed tests:       0 (30/30 pass after fix; +8 new clusterDrop tests)
+Self-recovered:     1 (type errors, same run)
+Human intervention: 0
+Final commit:       a911fff (resync leak fix, prior iteration's uncommitted
+                   work) + 35c7e76 (cluster drop feature) on feature/clusters
+Status:             PASS
+Notes:              lib/clusterDrop.ts — pure AABB overlap resolution
+                    (largest-overlap wins, edge-touch = no drop), unit-tested;
+                    WorkspaceCanvas onNodeDragStop assigns/unassigns only when
+                    target differs from current clusterId (no state churn);
+                    clusters set draggable:false until their positions persist;
+                    viewport persisted via onMoveEnd (prior iteration hunk).
+                    Check loop green: compile, 30/30 unit, wxt build
+                    (441.82 kB), e2e smoke 2/2 in headed Chromium.
+                    Remaining M2: item 3 cluster rename/delete UI;
+                    item 4 e2e extension (drag + reload restore proof).
+```
+
+---
+
+```
+Task:               M2 iteration 5 — cluster rename/delete UI (item 3)
+Model:              Qwen Code (local CLI agent)
+Elapsed time:       ~10 min
+Tool calls:         ~25
+Build attempts:     1 (compile PASS first try)
+Failed tests:       0 (32/32 pass; +2 new workspaceStore tests)
+Self-recovered:     0
+Human intervention: 0
+Final commit:       67b72f1 on feature/clusters (code + task files);
+                   this run-log entry committed separately
+Status:             PASS
+Notes:              renameCluster/deleteCluster store actions; delete
+                    unassigns member cards (clusterId -> undefined) and
+                    never closes real browser tabs. ClusterNode now shows
+                    ✎ (prompt rename) and × (confirm delete, message states
+                    member cards are unassigned, not closed); node data
+                    carries the full cluster object. CSS for action row.
+                    Check loop green: compile, 32/32 unit, wxt build
+                    (443.04 kB), e2e smoke 2/2 in headed Chromium.
+                    Remaining M2: item 4 e2e extension (drag card onto
+                    cluster, reload workspace page, assert positions +
+                    clusters restored) — last M2 slice.
+```
+
+---
+
+```
+Task:               M2 iteration 7 — e2e reload-restore proof (item 4),
+                    closes M2
+Model:              Qwen Code (local CLI agent)
+Elapsed time:       ~15 min
+Tool calls:         ~20
+Build attempts:     1 (compile PASS first try)
+Failed tests:       1 e2e run (new M2 test failed: snapshot key missing
+                   from chrome.storage.local — root cause was the test
+                   helper reading 'local:workspaceSnapshot' while
+                   wxt/utils/storage stores under raw key
+                   'workspaceSnapshot'; app persistence was correct)
+Self-recovered:     1 (test helper key fix, same run)
+Human intervention: 0
+Final commit:       60e9463 on feature/clusters (test); this run-log
+                   entry + task files committed separately
+Status:             PASS
+Notes:              tests/e2e/smoke.spec.ts gains the M2 acceptance test:
+                    two uniquely-URL'd data: tabs, create cluster via
+                    toolbar (prompt), mouse-drag Alpha card onto the
+                    cluster node, read snapshot from storage (assign +
+                    geometry), reload workspace page, assert cards and
+                    cluster render back with the card inside the cluster
+                    rect, then re-read storage to prove no position drift.
+                    Check loop green: compile, 32/32 unit, wxt build
+                    (443.04 kB), e2e smoke 3/3 in headed Chromium.
+                    M2 complete — all four items verified end-to-end.
+                    Branch feature/clusters ready for human merge;
+                    next backlog: M1-boundary card-click e2e, then M3.
+```
