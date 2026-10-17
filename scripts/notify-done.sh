@@ -56,6 +56,14 @@ Reply to Kimi when you are back and it will run acceptance + merge + push.
 
 — ralph watchdog on your M5 Max"
 
+# --- iMessage doorbell (instant, junk-proof) ---------------------------------
+# Short ping first so the phone buzzes even if the email lands in junk.
+PING="[browser-map] M4 loop ended — $VERDICT | compile=$COMPILE test=$TEST build=$BUILD — full report in mail"
+PING="$PING" osascript -e '
+set PING to system attribute "PING"
+tell application "Messages" to send PING to buddy "vvin732@icloud.com" of (1st service whose service type = iMessage)' \
+  && echo "iMessage doorbell sent" || echo "iMessage doorbell FAILED (email still goes out)"
+
 # --- email via Mail.app (uses the Mac's configured account) -----------------
 send_mail() {
 python3 - "$TO" "$BODY" << 'PYEOF'
