@@ -21,10 +21,12 @@ cd "$(dirname "$0")/.."
 
 MAX_ITER="${MAX_ITER:-8}"
 ITER_TIMEOUT="${ITER_TIMEOUT:-15m}"
-STALL_SECS="${STALL_SECS:-240}"
+STALL_SECS="${STALL_SECS:-420}"
 MAX_STALLS="${MAX_STALLS:-3}"
 
-export PATH="/opt/homebrew/bin:/opt/homebrew/opt/coreutils/libexec/gnubin:$HOME/Library/Application Support/kimi-desktop/daimon-share/daimon/npm-global/bin:$PATH"
+# NOTE: do NOT add coreutils' gnubin to PATH — its unprefixed GNU date
+# shadows BSD date and breaks the `-j -f` parsing in last_activity_epoch.
+export PATH="/opt/homebrew/bin:$HOME/Library/Application Support/kimi-desktop/daimon-share/daimon/npm-global/bin:$PATH"
 export OPENAI_API_KEY="${OPENAI_API_KEY:-lm-studio}"
 export OPENAI_BASE_URL="${OPENAI_BASE_URL:-http://localhost:1234/v1}"
 export OPENAI_MODEL="${OPENAI_MODEL:-qwen3.8-27b-mlx}"
@@ -47,7 +49,7 @@ last_activity_epoch() {
   log=$(ls -t "$HOME"/.lmstudio/server-logs/*/*.log 2>/dev/null | head -1)
   if [ -n "$log" ]; then
     ts=$(grep -E "Streaming response|Finished streaming|Prompt processing" "$log" 2>/dev/null | tail -1 | sed -E 's/^\[([^]]+)\].*/\1/')
-    [ -n "$ts" ] && epoch=$(date -j -f "%Y-%m-%d %H:%M:%S" "$ts" +%s 2>/dev/null || echo 0)
+    [ -n "$ts" ] && epoch=$(/bin/date -j -f "%Y-%m-%d %H:%M:%S" "$ts" +%s 2>/dev/null || echo 0)
   fi
   echo "$epoch"
 }
@@ -80,8 +82,9 @@ Loop rules:
 - otherwise finish the iteration by printing exactly: ITERATION DONE"
 
   start=$(date +%s)
-  # `script -q` gives the agent a pty so output streams live into the pane AND the log.
-  script -q "$LOG" $AGENT_CMD "$PROMPT" &
+  # Plain pipe (proven reliable in M1); output lands in the log per turn.
+  # Live token-level view lives in the cockpit's LM Studio pane instead.
+  $AGENT_CMD "$PROMPT" > "$LOG" 2>&1 &
   pid=$!
   touch "$MARKER"
   outcome="exit"
