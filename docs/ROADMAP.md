@@ -4,8 +4,10 @@
   autonomy defined (`.agent/POLICY.md`); inference backend operational
   (local Qwen3.8-27B via Ollama / LM Studio); build/test loop working;
   Git recovery verified.
-- [ ] **M1 — Spatial tab view**: query real open tabs; display as cards
-  on the spatial canvas; click card → activate the real tab.
+- [x] **M1 — Spatial tab view** (`65ac108` + e2e acceptance `3d4b4c8`):
+  real tabs render as cards on the canvas; own extension tab excluded;
+  favicon letter-avatar fallback; 2/2 e2e in real Chromium
+  (`docs/assets/m1-workspace.png`).
 - [ ] **M2 — Spatial organization**: dragging; clusters; tab-to-cluster
   movement; persistent layout.
 - [ ] **M3 — Workspace functionality**: search; workspace snapshots;

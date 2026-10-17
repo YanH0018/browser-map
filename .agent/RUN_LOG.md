@@ -81,3 +81,23 @@ Notes:              lib/browserAdapter.ts excludes the extension's own tabs
                     441 kB). Remaining M1: manual verification in real
                     Chromium.
 ```
+
+---
+
+```
+Task:               M1 acceptance — real-Chromium verification + merge
+Model:              Kimi (cloud agent) supervising; Playwright headed run
+Elapsed time:       ~3 min
+Build attempts:     0 (reused green build)
+Failed tests:       1 (ESM __dirname in smoke spec — fixed with
+                    import.meta.url, self-recovered)
+Self-recovered:     1
+Human intervention: 0 (Alex pre-authorized acceptance + merge)
+Final commit:       (merge into main — see git log)
+Status:             PASS
+Notes:              2/2 e2e in headed Chromium: MV3 service worker
+                    registers; workspace.html renders toolbar/canvas/
+                    inspector; about:blank appears as card with the
+                    letter-avatar fallback; workspace.html itself
+                    correctly excluded. Evidence: docs/assets/m1-workspace.png
+```
