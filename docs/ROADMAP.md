@@ -10,7 +10,7 @@
   (`docs/assets/m1-workspace.png`).
 - [x] **M2 — Spatial organization**: dragging; clusters; tab-to-cluster (merged fad08a3, ralph loop × 7 iterations)
   movement; persistent layout.
-- [ ] **M3 — Workspace functionality**: search; workspace snapshots;
+- [x] **M3 — Workspace functionality**: search; workspace snapshots; click-to-activate (pi engine, 2 iterations, d25453e)
   improved restoration; better tab synchronization.
 - [ ] **M4 — Robust browser synchronization**: creation/removal/URL &
   title updates/activation state; multi-window behavior.
