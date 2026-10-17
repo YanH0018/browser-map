@@ -46,10 +46,14 @@ export function deserializeWorkspace(raw: unknown): WorkspaceSnapshot | null {
   };
 }
 
-/** Merge persisted positions/cluster assignments onto freshly queried tabs. */
+/**
+ * Merge persisted positions/cluster assignments onto freshly queried tabs.
+ * Accepts anything carrying PersistedTabMetadata (WorkspaceSnapshot or
+ * NamedSnapshot); tabs not open in the browser are simply absent.
+ */
 export function applySnapshotToTabs(
   tabs: WorkspaceTab[],
-  snapshot: WorkspaceSnapshot,
+  snapshot: Pick<WorkspaceSnapshot, 'tabs'>,
 ): WorkspaceTab[] {
   const byUrl = new Map(snapshot.tabs.map((t) => [t.url, t]));
   return tabs.map((tab) => {

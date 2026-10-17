@@ -6,7 +6,12 @@ import InspectorPanel from '../../components/InspectorPanel';
 import { useWorkspaceStore } from '../../stores/workspaceStore';
 import { queryWorkspaceTabs } from '../../lib/browserAdapter';
 import { applySnapshotToTabs } from '../../lib/persistence';
-import { loadSnapshot, saveSnapshot } from '../../lib/workspaceStorage';
+import {
+  loadNamedSnapshots,
+  loadSnapshot,
+  saveNamedSnapshots,
+  saveSnapshot,
+} from '../../lib/workspaceStorage';
 import { serializeWorkspace } from '../../lib/persistence';
 
 /**
@@ -18,10 +23,15 @@ export default function App() {
   const setTabs = useWorkspaceStore((s) => s.setTabs);
   const setViewport = useWorkspaceStore((s) => s.setViewport);
 
-  // Initial load: persisted layout merged onto live tabs.
+  // Initial load: persisted layout merged onto live tabs, plus any
+  // user-named snapshots.
   useEffect(() => {
     void (async () => {
-      const [snapshot, live] = await Promise.all([loadSnapshot(), queryWorkspaceTabs()]);
+      const [snapshot, live, named] = await Promise.all([
+        loadSnapshot(),
+        queryWorkspaceTabs(),
+        loadNamedSnapshots(),
+      ]);
       if (snapshot) {
         setTabs(applySnapshotToTabs(live, snapshot));
         setViewport(snapshot.viewport);
@@ -29,6 +39,7 @@ export default function App() {
       } else {
         setTabs(live);
       }
+      useWorkspaceStore.setState({ namedSnapshots: named });
     })();
   }, [setTabs, setViewport]);
 
@@ -50,6 +61,22 @@ export default function App() {
       clearTimeout(timer);
       timer = setTimeout(() => {
         void saveSnapshot(serializeWorkspace(s.tabs, s.clusters, s.viewport));
+      }, 500);
+    });
+    return () => {
+      clearTimeout(timer);
+      unsub();
+    };
+  }, []);
+
+  // Persist named snapshots only when they change (debounced).
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const unsub = useWorkspaceStore.subscribe((s, prev) => {
+      if (s.namedSnapshots === prev.namedSnapshots) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        void saveNamedSnapshots(s.namedSnapshots);
       }, 500);
     });
     return () => {

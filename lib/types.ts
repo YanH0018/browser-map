@@ -64,6 +64,20 @@ export interface WorkspaceSnapshot {
   viewport: Viewport;
 }
 
+/**
+ * A user-named saved layout (M3). Captures the canvas state at save
+ * time; restoring it never opens or closes real browser tabs.
+ */
+export interface NamedSnapshot {
+  id: string;
+  name: string;
+  /** Epoch ms when the snapshot was (last) saved. */
+  createdAt: number;
+  tabs: PersistedTabMetadata[];
+  clusters: WorkspaceCluster[];
+  viewport: Viewport;
+}
+
 export const SNAPSHOT_VERSION = 1;
 
 export const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, zoom: 1 };

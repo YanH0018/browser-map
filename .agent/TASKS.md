@@ -7,7 +7,10 @@ Format: `[ ] task (milestone)` — mark `[x]` with the commit hash when done.
 
 - [x] Verify live tab query → card rendering on real Chromium (`65ac108`, e2e `3d4b4c8`)
 - [x] Favicon rendering fallbacks for chrome:// and missing icons (`65ac108`)
-- [ ] Card click activates the real browser tab — wired in InspectorPanel; needs e2e coverage (M1/M2 boundary)
+- [x] Card click activates the real browser tab — wired in InspectorPanel;
+      e2e coverage added (`3213892`): click card → inspector selects it,
+      "Activate tab" → real tab becomes active (asserted via
+      chrome.tabs.query from the extension page)
 
 ## Next (M2 — Spatial organization)
 

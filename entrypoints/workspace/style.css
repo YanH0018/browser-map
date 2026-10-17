@@ -50,6 +50,30 @@ body {
   cursor: pointer;
 }
 
+.bw-snapshots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.bw-snapshot-item {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #171a21;
+  border: 1px solid #333947;
+  font-size: 12px;
+}
+
+.bw-snapshot-item button {
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .bw-canvas {
   grid-area: canvas;
 }

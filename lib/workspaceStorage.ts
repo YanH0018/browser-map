@@ -1,6 +1,7 @@
 import { storage } from 'wxt/utils/storage';
-import type { WorkspaceSnapshot } from './types';
+import type { NamedSnapshot, WorkspaceSnapshot } from './types';
 import { deserializeWorkspace } from './persistence';
+import { deserializeNamedSnapshots } from './namedSnapshots';
 
 /**
  * Storage I/O layer. MVP backend: browser.storage.local.
@@ -18,4 +19,17 @@ export async function saveSnapshot(snapshot: WorkspaceSnapshot): Promise<void> {
 export async function loadSnapshot(): Promise<WorkspaceSnapshot | null> {
   const raw = await snapshotItem.getValue();
   return deserializeWorkspace(raw);
+}
+
+const namedSnapshotsItem = storage.defineItem<unknown>('local:namedSnapshots', {
+  fallback: [],
+});
+
+export async function saveNamedSnapshots(snapshots: NamedSnapshot[]): Promise<void> {
+  await namedSnapshotsItem.setValue(snapshots);
+}
+
+export async function loadNamedSnapshots(): Promise<NamedSnapshot[]> {
+  const raw = await namedSnapshotsItem.getValue();
+  return deserializeNamedSnapshots(raw);
 }

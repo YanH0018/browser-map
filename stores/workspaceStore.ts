@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type {
+  NamedSnapshot,
   Position,
   Viewport,
   WorkspaceCluster,
@@ -8,6 +9,8 @@ import type {
 import { DEFAULT_VIEWPORT } from '../lib/types';
 import { filterTabs } from '../lib/search';
 import { nextFreePosition } from '../lib/layout';
+import { createNamedSnapshot } from '../lib/namedSnapshots';
+import { applySnapshotToTabs } from '../lib/persistence';
 
 /**
  * Central workspace store (see docs/ARCHITECTURE.md).
@@ -20,6 +23,7 @@ export interface WorkspaceState {
   selectedTabIds: number[];
   viewport: Viewport;
   searchQuery: string;
+  namedSnapshots: NamedSnapshot[];
 
   setTabs: (tabs: WorkspaceTab[]) => void;
   moveTab: (tabId: number, position: Position) => void;
@@ -31,6 +35,10 @@ export interface WorkspaceState {
   selectTab: (tabId: number | null) => void;
   setSearchQuery: (query: string) => void;
   setViewport: (viewport: Viewport) => void;
+  setNamedSnapshots: (snapshots: NamedSnapshot[]) => void;
+  saveNamedSnapshot: (name: string) => void;
+  restoreNamedSnapshot: (id: string) => void;
+  deleteNamedSnapshot: (id: string) => void;
 }
 
 let clusterCounter = 0;
@@ -41,6 +49,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   selectedTabIds: [],
   viewport: DEFAULT_VIEWPORT,
   searchQuery: '',
+  namedSnapshots: [],
 
   setTabs: (tabs) => set({ tabs }),
 
@@ -89,6 +98,39 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   setSearchQuery: (query) => set({ searchQuery: query }),
 
   setViewport: (viewport) => set({ viewport }),
+
+  setNamedSnapshots: (snapshots) => set({ namedSnapshots: snapshots }),
+
+  // Save the current canvas state under a name. Saving again with an
+  // existing name updates that snapshot instead of creating a duplicate.
+  saveNamedSnapshot: (name) =>
+    set((s) => {
+      const snapshot = createNamedSnapshot(name, s.tabs, s.clusters, s.viewport);
+      const existing = s.namedSnapshots.find((x) => x.name === name);
+      return {
+        namedSnapshots: existing
+          ? s.namedSnapshots.map((x) => (x.id === existing.id ? snapshot : x))
+          : [...s.namedSnapshots, snapshot],
+      };
+    }),
+
+  // Restore replaces the canvas state (positions, clusters, viewport)
+  // from a saved snapshot. It never opens or closes real browser tabs:
+  // only tabs currently open get the saved arrangement; closed tabs are
+  // simply absent from the canvas.
+  restoreNamedSnapshot: (id) =>
+    set((s) => {
+      const snapshot = s.namedSnapshots.find((x) => x.id === id);
+      if (!snapshot) return s;
+      return {
+        tabs: applySnapshotToTabs(s.tabs, snapshot),
+        clusters: snapshot.clusters,
+        viewport: snapshot.viewport,
+      };
+    }),
+
+  deleteNamedSnapshot: (id) =>
+    set((s) => ({ namedSnapshots: s.namedSnapshots.filter((x) => x.id !== id) })),
 }));
 
 /** Selector: tabs visible under the current search query. */
