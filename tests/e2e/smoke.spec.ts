@@ -182,3 +182,61 @@ test('drag card onto cluster; reload restores positions and clusters', async () 
 
   await page.screenshot({ path: 'test-results/m2-cluster-restore.png', fullPage: true });
 });
+
+/**
+ * M1/M2 boundary acceptance: clicking a card selects it in the inspector,
+ * and "Activate tab" focuses the real browser tab behind the card.
+ */
+test('card click selects tab; Activate tab focuses the real browser tab', async () => {
+  const gammaUrl = 'data:text/html,<title>Gamma</title>';
+  const deltaUrl = 'data:text/html,<title>Delta</title>';
+  await (await context.newPage()).goto(gammaUrl);
+  await (await context.newPage()).goto(deltaUrl);
+
+  let worker = context.serviceWorkers()[0];
+  if (!worker) worker = await context.waitForEvent('serviceworker');
+  const extensionId = new URL(worker.url()).host;
+
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/workspace.html`);
+
+  const gammaCard = page.locator('.bw-tab-card', { hasText: 'Gamma' });
+  const deltaCard = page.locator('.bw-tab-card', { hasText: 'Delta' });
+  await expect(gammaCard).toBeVisible();
+  await expect(deltaCard).toBeVisible();
+
+  // URLs of the active tab in each window, via the extension tabs API.
+  // The workspace page is an extension page and holds the "tabs" permission,
+  // so it can read real tab state even after it loses focus.
+  const activeTabUrls = () =>
+    page.evaluate(
+      () =>
+        new Promise<string[]>((resolve) => {
+          const chromeApi = (window as unknown as { chrome: any }).chrome;
+          chromeApi.tabs.query(
+            { active: true },
+            (tabs: Array<{ url?: string }>) => resolve(tabs.map((t) => t.url ?? '')),
+          );
+        }),
+    );
+
+  // Sanity: the freshly opened workspace page is the active tab right now.
+  await expect.poll(activeTabUrls).toContain(`chrome-extension://${extensionId}/workspace.html`);
+
+  // Clicking a card selects it: the inspector shows its metadata + actions.
+  await gammaCard.click();
+  const inspector = page.locator('.bw-inspector');
+  await expect(inspector).toContainText('Gamma');
+  const activateButton = inspector.getByRole('button', { name: 'Activate tab' });
+  await expect(activateButton).toBeVisible();
+
+  // Activate the real browser tab behind the card.
+  await activateButton.click();
+
+  // The Gamma tab is now active in its window (and Delta is not).
+  await expect.poll(activeTabUrls).toContain(gammaUrl);
+  const urls = await activeTabUrls();
+  expect(urls).not.toContain(deltaUrl);
+
+  await page.screenshot({ path: 'test-results/m1-card-activate.png', fullPage: true });
+});
