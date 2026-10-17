@@ -38,10 +38,18 @@ MARKER=".agent/runs/.marker"
 notify() { osascript -e "display notification \"$1\" with title \"ralph loop\" sound name \"Glass\"" 2>/dev/null || true; }
 metric() { printf '{"iter":%s,"outcome":"%s","secs":%s,"ts":"%s"}\n' "$1" "$2" "$3" "$(date -u +%FT%TZ)" >> "$METRICS"; }
 
-# number of inference streams served so far (liveness signal from LM Studio)
-stream_count() {
-  local log; log=$(ls -t "$HOME"/.lmstudio/server-logs/*/*.log 2>/dev/null | head -1)
-  [ -n "$log" ] && grep -c "Streaming response" "$log" 2>/dev/null || echo 0
+# seconds since the last real generation activity in LM Studio's log.
+# Counts stream starts, prompt-processing progress, and stream finishes —
+# NOT the periodic cache_store bookkeeping lines. A wedged stream produces
+# none of these; a healthy iteration produces at least one every few minutes.
+last_activity_epoch() {
+  local log ts epoch=0
+  log=$(ls -t "$HOME"/.lmstudio/server-logs/*/*.log 2>/dev/null | head -1)
+  if [ -n "$log" ]; then
+    ts=$(grep -E "Streaming response|Finished streaming|Prompt processing" "$log" 2>/dev/null | tail -1 | sed -E 's/^\[([^]]+)\].*/\1/')
+    [ -n "$ts" ] && epoch=$(date -j -f "%Y-%m-%d %H:%M:%S" "$ts" +%s 2>/dev/null || echo 0)
+  fi
+  echo "$epoch"
 }
 
 if ! curl -sf -m 5 "$OPENAI_BASE_URL/models" | grep -q "$OPENAI_MODEL"; then
@@ -76,7 +84,6 @@ Loop rules:
   script -q "$LOG" $AGENT_CMD "$PROMPT" &
   pid=$!
   touch "$MARKER"
-  last_streams=$(stream_count)
   outcome="exit"
 
   while kill -0 "$pid" 2>/dev/null; do
@@ -87,16 +94,18 @@ Loop rules:
     if [ "$elapsed" -ge "$max_secs" ]; then
       echo "⏱ iteration timeout ($ITER_TIMEOUT) — killing"; kill "$pid" 2>/dev/null; outcome="timeout"; break
     fi
-    # stall breaker: no new inference streams AND no repo file newer than marker
+    # stall breaker: no LM Studio generation activity for STALL_SECS
+    # AND no repo file newer than marker — both stale means wedged.
     if [ "$elapsed" -ge "$STALL_SECS" ]; then
-      cur_streams=$(stream_count)
-      if [ "$cur_streams" = "$last_streams" ] && ! find . -type f -newer "$MARKER" \
+      act_epoch=$(last_activity_epoch)
+      act_age=$(( act_epoch > 0 ? now - act_epoch : 99999 ))
+      if [ "$act_age" -gt "$STALL_SECS" ] && ! find . -type f -newer "$MARKER" \
           -not -path './.git/*' -not -path './node_modules/*' -not -path './.agent/runs/*' \
           -not -path './.wxt/*' -not -path './.output/*' -print -quit | grep -q .; then
-        echo "⚠ stall detected (no stream, no repo change, ${STALL_SECS}s) — restarting fresh"
+        echo "⚠ stall detected (no generation activity for ${act_age}s, no repo change) — restarting fresh"
         kill "$pid" 2>/dev/null; outcome="stall"; break
       fi
-      last_streams=$cur_streams; touch "$MARKER"
+      touch "$MARKER"
     fi
   done
   wait "$pid" 2>/dev/null
