@@ -20,15 +20,14 @@ const tab = (over: Partial<WorkspaceTab>): WorkspaceTab => ({
 });
 
 describe('serializeWorkspace / deserializeWorkspace round-trip', () => {
-  it('persists stable metadata only (no ephemeral tabId)', () => {
+  it('persists metadata keyed by tabId (D9)', () => {
     const snapshot = serializeWorkspace(
       [tab({ tabId: 42, clusterId: 'c1' })],
       [{ id: 'c1', name: 'ML', position: { x: 0, y: 0 }, size: { width: 100, height: 100 } }],
       { x: 5, y: 6, zoom: 1.5 },
     );
     expect(snapshot.version).toBe(SNAPSHOT_VERSION);
-    expect(snapshot.tabs[0]).not.toHaveProperty('tabId');
-    expect(snapshot.tabs[0]).toMatchObject({ url: 'https://a.example.com', clusterId: 'c1' });
+    expect(snapshot.tabs[0]).toMatchObject({ url: 'https://a.example.com', clusterId: 'c1', tabId: 42 });
 
     const restored = deserializeWorkspace(JSON.parse(JSON.stringify(snapshot)));
     expect(restored).toEqual(snapshot);
@@ -47,7 +46,7 @@ describe('serializeWorkspace / deserializeWorkspace round-trip', () => {
 });
 
 describe('applySnapshotToTabs', () => {
-  it('restores position and cluster by URL identity', () => {
+  it('restores position and cluster (URL fallback for stale tabId)', () => {
     const live = [tab({ tabId: 99, position: { x: 0, y: 0 } })];
     const snapshot = serializeWorkspace(
       [tab({ position: { x: 400, y: 300 }, clusterId: 'c1' })],

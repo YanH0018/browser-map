@@ -5,6 +5,7 @@ import type {
   WorkspaceCluster,
   WorkspaceTab,
 } from './types';
+import { sanitizePersistedTabs } from './tabIdentity';
 
 /**
  * Pure logic for named workspace snapshots (M3). No browser APIs here —
@@ -20,12 +21,16 @@ export function createNamedSnapshot(
   clusters: WorkspaceCluster[],
   viewport: Viewport,
 ): NamedSnapshot {
-  const persistedTabs: PersistedTabMetadata[] = tabs.map((t) => ({
-    url: t.url,
-    title: t.title,
-    position: t.position,
-    clusterId: t.clusterId,
-  }));
+  const persistedTabs: PersistedTabMetadata[] = tabs.map((t) => {
+    const entry: PersistedTabMetadata = {
+      url: t.url,
+      title: t.title,
+      position: t.position,
+    };
+    if (t.tabId >= 0) entry.tabId = t.tabId;
+    if (t.clusterId !== undefined) entry.clusterId = t.clusterId;
+    return entry;
+  });
   return {
     id: `snapshot-${Date.now()}-${snapshotCounter++}`,
     name,
@@ -51,5 +56,9 @@ function isNamedSnapshot(value: unknown): value is NamedSnapshot {
 /** Parse an untrusted stored value; drops unusable entries, keeps order. */
 export function deserializeNamedSnapshots(raw: unknown): NamedSnapshot[] {
   if (!Array.isArray(raw)) return [];
-  return raw.filter(isNamedSnapshot);
+  // Sanitize tab entries too: named snapshots are untrusted storage data.
+  return raw.filter(isNamedSnapshot).map((snap) => ({
+    ...snap,
+    tabs: sanitizePersistedTabs(snap.tabs),
+  }));
 }

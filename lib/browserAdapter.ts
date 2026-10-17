@@ -1,6 +1,7 @@
 import { browser } from 'wxt/browser';
 import type { Position, WorkspaceTab } from './types';
 import { nextFreePosition } from './layout';
+import { resolveTabState } from './tabIdentity';
 
 /**
  * Browser adapter: the only module allowed to talk to browser tab APIs.
@@ -51,21 +52,17 @@ export function normalizeTab(tab: BrowserTabLike, position: Position): Workspace
 
 /** Query all open browser tabs and normalize them. */
 export async function queryWorkspaceTabs(existing: WorkspaceTab[] = []): Promise<WorkspaceTab[]> {
-  const byUrl = new Map(existing.map((t) => [t.url, t]));
   // The extension's own pages (workspace.html etc.) are real tabs too;
   // they must never appear as cards on the canvas.
   const ownOrigin = browser.runtime.getURL('');
   const tabs = await browser.tabs.query({});
-  return tabs
+  const normalized = tabs
     .filter((t) => t.id !== undefined && t.url !== undefined && !isOwnExtensionTab(t.url, ownOrigin))
-    .map((t, i) => {
-      // Preserve workspace state (position + cluster assignment) for tabs
-      // we have seen before; resync must not wipe user arrangement.
-      const prior = byUrl.get(t.url!);
-      const normalized = normalizeTab(t, prior?.position ?? nextFreePosition(i));
-      if (prior?.clusterId !== undefined) normalized.clusterId = prior.clusterId;
-      return normalized;
-    });
+    .map((t, i) => normalizeTab(t, nextFreePosition(i)));
+  // Preserve workspace state (position + cluster assignment) for tabs we
+  // have seen before; resync must not wipe user arrangement. Matching is
+  // tabId-first (D9): a navigating tab keeps its card, URL is fallback.
+  return resolveTabState(normalized, existing);
 }
 
 /** Activate (focus) a real browser tab. */

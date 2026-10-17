@@ -34,14 +34,18 @@ No content script. The MVP does not inject code into web pages.
 - `WorkspaceTab` — ephemeral `tabId`/`windowId` plus stable metadata
   (title, url, domain, favicon), `position`, optional `clusterId`.
 - `WorkspaceCluster` — `id`, `name`, `position`, `size`.
-- `WorkspaceSnapshot` — `version`, `PersistedTabMetadata[]` (keyed by URL,
-  **never by tabId**), clusters, viewport. `SNAPSHOT_VERSION = 1`.
+- `WorkspaceSnapshot` — `version`, `PersistedTabMetadata[]` (keyed by
+  tabId, URL as display data + fallback), clusters, viewport.
+  `SNAPSHOT_VERSION = 2`; v1 (URL-keyed) snapshots still load.
 
-## Identity rule
+## Identity rule (D9)
 
-Browser tab IDs change between sessions. Persistence and restoration
-match on URL; live tab identity is re-established at query time
-(`applySnapshotToTabs`).
+Tab identity is **tabId-first**: persisted state carries the live tabId,
+so a navigating tab keeps its position and cluster across resyncs.
+URL is display data plus a fallback for v1 snapshots (no tabId) and
+stale ids after browser restarts. Matching lives in `lib/tabIdentity.ts`
+(`resolveTabState`) and is shared by snapshot restore
+(`applySnapshotToTabs`) and live resync (`queryWorkspaceTabs`).
 
 ## Component hierarchy
 

@@ -68,3 +68,20 @@ ADR-style. Newest last. Each entry: decision, rationale, consequences.
 - **Rationale**: MV3 service workers are killed arbitrarily; stateless
   restart is free.
 - **Consequences**: workspace page owns tab-state caching.
+
+## D9 — Tab identity: tabId-first with URL fallback (supersedes D6)
+
+- **Decision**: persisted tab state is keyed by `tabId`; URL/title are
+  display data plus a fallback for entries whose tabId is unknown (v1
+  snapshots) or stale (tab closed, browser restarted). Snapshot version
+  bumped to 2; v1 snapshots still load and migrate on next save.
+- **Rationale**: URL-keyed matching (D6) made a navigating tab lose its
+  position and cluster on every resync — the canvas could not be a live
+  mirror of the browser. tabId is stable for the whole browser session,
+  which covers all live-sync cases; the URL fallback covers restarts and
+  legacy snapshots.
+- **Consequences**: matching logic centralized in `lib/tabIdentity.ts`
+  (`resolveTabState`, shared by snapshot restore and live resync);
+  duplicate-URL tabs no longer alias one arrangement (each persisted
+  entry is consumed at most once); `PersistedTabMetadata.tabId` is
+  optional so v1 data stays valid.
