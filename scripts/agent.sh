@@ -16,7 +16,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-export PATH="/opt/homebrew/bin:$PATH"
+export PATH="/opt/homebrew/bin:$HOME/Library/Application Support/kimi-desktop/daimon-share/daimon/npm-global/bin:$PATH"
 export OPENAI_API_KEY="${OPENAI_API_KEY:-lm-studio}"
 export OPENAI_BASE_URL="${OPENAI_BASE_URL:-http://localhost:1234/v1}"
 export OPENAI_MODEL="${OPENAI_MODEL:-qwen3.8-27b-mlx}"
