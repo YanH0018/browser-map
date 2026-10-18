@@ -86,6 +86,52 @@ e2e 6/6 at `e5f35ef`). Branch `feature/m5` awaits merge (human).
 M6 complete: all four items verified (compile, 132/132 unit, build,
 e2e 7/7 at `3d5890a`). Branch `feature/m6` awaits merge (human).
 
+## Now (M7 — Semantic clustering)
+
+- [x] `lib/semantic.ts` pure, unit-testable (M7) — hand-rolled
+      `cosineSimilarity` + greedy single-linkage threshold clustering
+      (`clusterByThreshold`, union-find over pairs sorted by similarity
+      desc, merge while `sim ≥ threshold`); default threshold **0.5**
+      (`DEFAULT_SIMILARITY_THRESHOLD`) calibrated on nomic-embed-text-v1.5
+      and documented in D18; `MIN_CLUSTER_SIZE = 2` (singletons are noise);
+      naming helpers (`dominantDomain`, `commonTitlePrefix`,
+      `suggestedClusterName`) + `buildSuggestedClusters` (unclustered tabs
+      only, stable ids `cluster-semantic-<k>`, M6 cascade geometry) —
+      24 unit tests in `tests/semantic.test.ts` (fixed vectors, hand-
+      computed cosines: determinism, order-independence of membership,
+      threshold behavior incl. exact-at-threshold merge, singletons) (`37aa208`)
+- [x] Embedding pipeline (M7) — `lib/embeddings.ts`: embeds each tab's
+      `title + " " + hostname` via LM Studio's OpenAI-compatible endpoint
+      (`http://localhost:1234/v1/embeddings`, model
+      `text-embedding-nomic-embed-text-v1.5`), chunked at 32, 120 s timeout;
+      vectors cached by URL in a separate `embeddingCache` storage key
+      (`loadEmbeddingCache`/`saveEmbeddingCache`, malformed entries dropped
+      on load) so reloads never re-embed; any failure (unreachable,
+      non-2xx, malformed) throws a plain Error — the store catches it and
+      surfaces a toolbar notice; never crashes, never blocks the canvas
+      (D18); 13 unit tests in `tests/embeddings.test.ts` with MOCKED fetch
+      (no live model) (`37aa208`)
+- [x] "Suggest clusters" toolbar button (M7) — store action
+      `suggestClusters`: embeds UNCLUSTERED tabs only (existing clusters/
+      assignments never touched), upserts the `before-autolayout` safety
+      snapshot BEFORE mutating (M6 pattern; a failed run creates nothing,
+      not even the snapshot), applies `buildSuggestedClusters` against
+      fresh state (stale vectors simply unused); `semanticBusy` disables
+      the button while in flight; failure renders a `role=status`
+      aria-live notice (`.bw-semantic-notice`); 9 store tests with mocked
+      fetch + storage (`37aa208`)
+- [x] Tests (M7) — unit: clustering math with fixed vectors +
+      store/pipeline with mocked fetch (above); e2e extended ONLY to
+      assert the button exists and the failure-notice path renders via a
+      mocked fetch failure (`page.route('**/v1/embeddings', abort)` —
+      deterministic even if LM Studio is running), asserting nothing was
+      mutated (no clusters, tabs unclustered, snapshot list untouched);
+      no e2e against the live endpoint (D18) (`37aa208`)
+
+M7 complete: all four items verified (compile, 179/179 unit, build
+460.28 kB, e2e 8/8 at `37aa208`). Branch `feature/m7` awaits merge
+(human).
+
 ## Done (M4 — Robust browser synchronization)
 
 - [x] Tab identity by tabId, not URL (M4) — `lib/tabIdentity.ts`
@@ -135,7 +181,6 @@ e2e 4/4 at `a880f4a`).
 
 - [ ] Real Playwright e2e suite per `tests/e2e/README.md` (M4)
 - [ ] Visual test loop: screenshot → vision-model inspection (M5)
-- [ ] Local embeddings + semantic clustering (M7)
 - [ ] Natural-language workspace commands via local model (M8)
 
 ## Known issues
