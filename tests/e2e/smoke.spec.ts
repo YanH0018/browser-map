@@ -332,6 +332,14 @@ test('live sync: open → card appears; close → gone; navigate keeps position/
   const clusterNode = page.locator('.bw-cluster-node', { hasText: 'LiveSync' });
   await expect(clusterNode).toBeVisible();
 
+  // The canvas fitView zooms to the cards present at load, so a cluster
+  // created afterwards can land OFF-SCREEN (window-size dependent: headed
+  // e2e windows differ across displays). An off-screen drop target cannot
+  // receive the drag — re-fit the view so card and cluster are both
+  // visible before computing drag coordinates.
+  await page.locator('.react-flow__controls-fitview').click();
+  await page.waitForTimeout(400); // fitView pan/zoom settles
+
   // The nav tab is active right now; bring the workspace page to front so
   // mouse events (the drag) reach it.
   await page.bringToFront();
