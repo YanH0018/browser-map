@@ -12,7 +12,7 @@
   movement; persistent layout.
 - [x] **M3 — Workspace functionality**: search; workspace snapshots; click-to-activate (pi engine, 2 iterations, d25453e)
   improved restoration; better tab synchronization.
-- [ ] **M4 — Robust browser synchronization**: creation/removal/URL &
+- [x] **M4 — Robust browser synchronization**: creation/removal/URL &
   title updates/activation state; multi-window behavior.
 - [ ] **M5 — Interaction quality**: keyboard navigation; visual polish;
   performance with many tabs; accessibility; cluster interaction.
