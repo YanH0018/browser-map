@@ -26,8 +26,11 @@ export default function InspectorPanel() {
         {windowLabel ? ` · Window: ${windowLabel}` : ''}
         {tab.clusterId ? ` · Cluster: ${tab.clusterId}` : ''}
       </p>
-      <button onClick={() => void activateBrowserTab(tab)}>Activate tab</button>{' '}
+      <button aria-label={`Activate tab ${tab.title}`} onClick={() => void activateBrowserTab(tab)}>
+        Activate tab
+      </button>{' '}
       <button
+        aria-label={`Close tab ${tab.title}`}
         onClick={() => {
           void closeBrowserTab(tab);
           removeTab(tab.tabId);

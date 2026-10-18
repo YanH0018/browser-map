@@ -96,6 +96,14 @@ body {
   font-size: 13px;
 }
 
+/* Keyboard navigation (M5 item 1, D12): visible selection indicator. */
+.bw-tab-card--selected {
+  border-color: #4f8cff;
+  box-shadow:
+    0 0 0 2px rgba(79, 140, 255, 0.4),
+    0 0 12px rgba(79, 140, 255, 0.25);
+}
+
 /* Multi-window badge (M4 item 3): which browser window the tab lives in. */
 .bw-tab-badge {
   position: absolute;
@@ -149,6 +157,23 @@ body {
   letter-spacing: 0.08em;
 }
 
+.bw-cluster-name {
+  cursor: pointer;
+}
+
+.bw-cluster-name-input {
+  flex: 1;
+  min-width: 0;
+  background: #1d212b;
+  border: 1px solid #4a5265;
+  border-radius: 4px;
+  color: #e8ecf3;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+}
+
 .bw-cluster-actions {
   display: flex;
   gap: 4px;
@@ -167,4 +192,17 @@ body {
 
 .bw-cluster-actions button:hover {
   background: #262c39;
+}
+
+/* Accessibility (M5 item 4, D15): honor prefers-reduced-motion — disable
+   every transition/animation in the app, including XYFlow's own CSS
+   (node box-shadow/border transitions, edge dash animation). The canvas
+   also skips the fitView pan/zoom animation (duration 0) via
+   lib/reducedMotion.ts. */
+@media (prefers-reduced-motion: reduce) {
+  .bw-app *,
+  .bw-canvas * {
+    transition: none !important;
+    animation: none !important;
+  }
 }

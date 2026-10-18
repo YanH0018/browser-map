@@ -42,6 +42,30 @@ describe('workspaceStore', () => {
     expect(s.tabs[0]?.clusterId).toBe(cluster.id);
   });
 
+  it('moves a cluster without moving its member cards (D13)', () => {
+    useWorkspaceStore.getState().setTabs([
+      tab({ tabId: 1, position: { x: 40, y: 30 } }),
+      tab({ tabId: 2, position: { x: 900, y: 800 } }),
+    ]);
+    const cluster = useWorkspaceStore.getState().createCluster('Work', { x: 0, y: 0 });
+    useWorkspaceStore.getState().assignTab(1, cluster.id);
+    useWorkspaceStore.getState().moveCluster(cluster.id, { x: 500, y: 320 });
+    const s = useWorkspaceStore.getState();
+    expect(s.clusters[0]?.position).toEqual({ x: 500, y: 320 });
+    // Member card keeps its own position; assignment is by explicit drop,
+    // not containment, so cards do not follow a moving cluster.
+    expect(s.tabs.find((t) => t.tabId === 1)?.position).toEqual({ x: 40, y: 30 });
+    expect(s.tabs.find((t) => t.tabId === 1)?.clusterId).toBe(cluster.id);
+    expect(s.tabs.find((t) => t.tabId === 2)?.position).toEqual({ x: 900, y: 800 });
+  });
+
+  it('moveCluster is a no-op for an unknown cluster id', () => {
+    useWorkspaceStore.getState().createCluster('Work', { x: 0, y: 0 });
+    const before = useWorkspaceStore.getState().clusters;
+    useWorkspaceStore.getState().moveCluster('cluster-does-not-exist', { x: 10, y: 20 });
+    expect(useWorkspaceStore.getState().clusters).toEqual(before);
+  });
+
   it('renames a cluster', () => {
     useWorkspaceStore.getState().setTabs([tab({ tabId: 1 })]);
     const cluster = useWorkspaceStore.getState().createCluster('Thesis', { x: 0, y: 0 });

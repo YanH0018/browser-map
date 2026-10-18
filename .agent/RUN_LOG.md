@@ -377,3 +377,130 @@ Notes:              No product code changes needed; the live pipeline
                     M4 done; feature/m4 awaits merge (human). Next:
                     M5/M6 per .agent/TASKS.md "Later".
 ```
+
+---
+
+```
+Task:               M5 iteration 2 — cluster drag + inline rename (item 2)
+Model:              pi coding agent, qwen3.8-27b-mlx (LM Studio)
+Elapsed time:       ~15 min
+Tool calls:         ~20
+Build attempts:     1 (compile PASS first run)
+Failed tests:       1 e2e run (live-sync drag-onto-cluster flake —
+                    clusterId undefined after raw-mouse drag; passed on
+                    immediate rerun, 6/6)
+Self-recovered:     1 (e2e flake diagnosed as timing, rerun green;
+                    recorded in TASKS.md known issues)
+Human intervention: 0
+Final commit:       5f31b37 on feature/m5 (code + tests + D13);
+                   task files separate
+Status:             PASS
+Notes:              Item 2 complete. Clusters are now draggable frames:
+                    new store action moveCluster (pure, unit-tested),
+                    WorkspaceCanvas routes cluster-id position changes to
+                    it (tab ids numeric, cluster ids 'cluster-...');
+                    positions persist via the existing v2 snapshot schema
+                    (no format change). Member cards do NOT follow a
+                    moving cluster — documented as D13 (assignment is by
+                    explicit drop, not containment). Inline rename
+                    replaces window.prompt: double-click the cluster
+                    title (or ✎) edits in place; Enter/blur commits,
+                    Escape cancels; mousedown stopPropagation on
+                    title/input/buttons so editing never starts a node
+                    drag or pan; aria-labels added to the rename/delete
+                    buttons and input (feeds item 4). +2 store tests
+                    (move without moving members; unknown-id no-op).
+                    Check loop green: compile, 95/95 unit, wxt build
+                    (451.64 kB), e2e 6/6 in headed Chromium.
+                    Remaining M5: item 3 (150-tab perf — React.memo +
+                    stable callbacks, render-count test or documented
+                    measurement), item 4 (a11y basics — aria-labels,
+                    roles/tab order on cards, prefers-reduced-motion).
+```
+
+```
+Task:               M5 iteration 3 — performance with 150 tabs (item 3)
+Model:              pi coding agent, qwen3.8-27b-mlx (LM Studio)
+Elapsed time:       ~25 min
+Tool calls:         ~30
+Build attempts:     1 (compile PASS first run)
+Failed tests:       none — new render-count test passed on first run;
+                    full loop green (compile, 101/101 unit, build, e2e 6/6)
+Self-recovered:     0
+Human intervention: 0
+Final commit:       4d2f857 on feature/m5 (code + tests + D14);
+                   task files separate
+Status:             PASS
+Notes:              Item 3 complete (D14). React.memo alone was not
+                    enough: the canvas rebuilt every node's `data` object
+                    on each store update, so a shallow memo comparison
+                    would have failed for all 150 cards. Fix: WeakMap
+                    caches (keyed by tab/cluster object identity) reuse
+                    the previous per-node `data` reference when the tab,
+                    selection flag and badge (value-compared) are
+                    unchanged — zustand replaces only the changed tab's
+                    object, so stability is free; WeakMap gives GC with
+                    no pruning. All ReactFlow callbacks are stable via
+                    useCallback (drag-stop reads getState()). Verified by
+                    tests/renderCount.test.tsx: renders the real
+                    WorkspaceCanvas in happy-dom with 150 cards + 2
+                    clusters (ResizeObserver stubbed so RF never measures)
+                    and asserts exact render deltas — moveTab +1 card,
+                    selectTab +1/+2 cards, moveCluster/renameCluster +1
+                    cluster with 0 tabs, setTabs add +1 card, in-place tab
+                    update (live-sync shape) +1 card. 6/6 pass; full suite
+                    now 101 unit tests. Dev dep added: happy-dom (test env
+                    only). Remaining M5: item 4 (a11y basics — aria-labels
+                    on all interactive elements, role/tab order on cards,
+                    prefers-reduced-motion).
+```
+
+---
+
+```
+Task:               M5 iteration 4 — accessibility basics (item 4)
+Model:              pi coding agent, qwen3.8-27b-mlx (LM Studio)
+Elapsed time:       ~20 min
+Tool calls:         ~35
+Build attempts:     1 (compile FAIL first run — type errors in the new test
+                    files left by an interrupted prior run; fixed, then all
+                    green)
+Failed tests:       0 (112/112 pass; the two new test files had TS errors,
+                    not runtime failures)
+Self-recovered:     1 (recovered uncommitted work from an interrupted run:
+                    fixed noUncheckedIndexedAccess destructuring in
+                    keyboardNavHook.test.tsx via a cardPair() helper and the
+                    globalThis.window typing in reducedMotion.test.ts)
+Human intervention: 0
+Final commit:       e5f35ef on feature/m5 (code + tests); task files + D15
+                   separate commit
+Status:             PASS
+Notes:              Item 4 complete (D15) — M5 is now fully done. Cards are
+                    real keyboard controls: role="button" + tabIndex=0 (tab
+                    order = DOM order), aria-label "Tab card: <title>
+                    (<domain>)[, window Wn]", aria-pressed mirrors selection.
+                    Focus<->selection sync both ways: onFocus -> selectTab,
+                    and a useEffect moves DOM focus onto the selected card
+                    (preventScroll) — this reuses the D12 spatial-nav reducer
+                    unchanged, so arrows/Enter/Escape keep working. Space
+                    activates a focused card (native button semantics; Enter
+                    still works from anywhere); real form controls remain
+                    un-hijacked via isInteractiveTarget. aria-labels added to
+                    every remaining interactive element (toolbar search +
+                    buttons, snapshot restore/delete, inspector activate/
+                    close; cluster rename/delete/input were labeled in item 2).
+                    prefers-reduced-motion: CSS media query disables all
+                    transitions/animations (incl. XYFlow's own), and
+                    lib/reducedMotion.ts (safe in non-browser envs) makes the
+                    canvas pass fitViewOptions { duration: 0 }. New tests:
+                    reducedMotion.test.ts (5) and keyboardNavHook.test.tsx
+                    (6, happy-dom harness mounting the real WorkspaceCanvas +
+                    useKeyboardNav with a mocked browser adapter: roles/labels,
+                    spatial arrows through the hook, Enter activation, focus->
+                    select + Space-on-card, selection->focus, Escape, no
+                    hijacking on form controls). Full loop green: compile,
+                    112/112 unit (was 101), wxt build (453.13 kB), e2e 6/6 in
+                    headed Chromium. Remaining: none for M5 — branch
+                    feature/m5 awaits human merge; next milestone per
+                    ROADMAP is M6 (automatic layout algorithms).
+```

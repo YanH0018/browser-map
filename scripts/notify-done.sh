@@ -34,10 +34,13 @@ GITLOG=$(git log --oneline -8)
 STATUS=$(git status --short | head -10)
 METRICS=$(cat .agent/runs/loop-*.jsonl 2>/dev/null | tail -10)
 LASTLOG=$(ls -t .agent/runs/2*-iter*.log 2>/dev/null | head -1)
-DONE=$(grep -l "TASK DONE" .agent/runs/2*-iter*.log 2>/dev/null | tail -1)
+DONE=""
+for f in .agent/runs/2*-iter*.log; do
+  [ -f "$f" ] && scripts/task-done.sh "$f" && DONE="$f"
+done
 VERDICT=$([ -n "$DONE" ] && echo "TASK DONE (in $DONE)" || echo "NO TASK DONE — check metrics")
 
-BODY="M4 agent loop finished on branch $BRANCH (engine: pi).
+BODY="M5 agent loop finished on branch $BRANCH (engine: pi).
 
 Verdict: $VERDICT
 Independent check loop:  compile=$COMPILE  test=$TEST  build=$BUILD
@@ -58,7 +61,7 @@ Reply to Kimi when you are back and it will run acceptance + merge + push.
 
 # --- iMessage doorbell (instant, junk-proof) ---------------------------------
 # Short ping first so the phone buzzes even if the email lands in junk.
-PING="[browser-map] M4 loop ended — $VERDICT | compile=$COMPILE test=$TEST build=$BUILD — full report in mail"
+PING="[browser-map] M5 loop ended — $VERDICT | compile=$COMPILE test=$TEST build=$BUILD — full report in mail"
 PING="$PING" osascript -e '
 set PING to system attribute "PING"
 tell application "Messages" to send PING to buddy "vvin732@icloud.com" of (1st service whose service type = iMessage)' \
@@ -77,7 +80,7 @@ script = '''
 set BODY to system attribute "BODY"
 set ADDR to system attribute "TO"
 tell application "Mail"
-  set m to make new outgoing message with properties {subject:"[browser-map] M4 loop finished — report attached", content:BODY, visible:false}
+  set m to make new outgoing message with properties {subject:"[browser-map] M5 loop finished — report attached", content:BODY, visible:false}
   tell m to make new to recipient at end of to recipients with properties {address:ADDR}
   send m
 end tell

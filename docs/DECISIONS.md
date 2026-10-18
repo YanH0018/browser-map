@@ -123,3 +123,124 @@ ADR-style. Newest last. Each entry: decision, rationale, consequences.
   while a search filter hides cards; InspectorPanel shows the window
   label for the selected tab; persistence format unchanged (windowId was
   already on WorkspaceTab via normalizeTab).
+
+## D12 — Keyboard navigation: spatial-nearest arrow movement
+
+- **Decision**: arrow keys move a visible card selection by *spatial
+  nearest* in the pressed direction (not reading order): candidates are
+  visible cards whose position lies in front of the arrow (positive
+  projection); among them the one minimizing
+  `distance × (1 + |perpendicular| / forward)` wins, with the smaller
+  tabId as deterministic tiebreak. Nothing selected → first visible card;
+  no candidate in that direction → stay put (no wrap-around). Enter
+  activates the real tab behind the selected card, reusing M3's
+  `activateBrowserTab` path; Escape clears selection. The geometry is a
+  pure reducer (`lib/keyboardNav.ts`, `nextSelectedTabId`); a
+  document-level capture-phase keydown hook (`useKeyboardNav`) wires it,
+  ignoring keys while an input/button/contenteditable has focus and never
+  hijacking Cmd/Ctrl/Alt combos.
+- **Rationale**: the canvas is free-form 2D — cards are dragged anywhere,
+  so row-major reading order would jump unpredictably; spatial-nearest is
+  the standard for 2D canvases (Figma/Keynote-style) and matches what the
+  user sees. A pure reducer keeps the geometry unit-testable without a
+  browser; capture phase guarantees we win over React Flow's own key
+  handling.
+- **Consequences**: the selection highlight is a CSS class on the card
+  (`bw-tab-card--selected`), deliberately NOT XYFlow's `node.selected`,
+  which would enable React Flow's arrow-move / delete key semantics;
+  navigation respects the search filter (only visible cards are
+  candidates); after Enter, the live `onActivated` event keeps selection
+  on the activated card (D10); cards are uniform-sized, so top-left
+  positions give the same relative vectors as center math.
+
+## D13 — Clusters are draggable frames; member cards do not follow
+
+- **Decision**: cluster nodes are draggable (M5 item 2); a drag updates
+  `WorkspaceCluster.position` through the new store action
+  `moveCluster`, which persists via the existing snapshot schema (cluster
+  positions were already serialized in v2). Member cards do NOT follow a
+  moving cluster: their `position` is independent, and membership is by
+  explicit drop (M2), not geometric containment. Renaming a cluster is
+  inline — double-click the title (or press ✎) to edit in place;
+  Enter/blur commits, Escape cancels — replacing `window.prompt`.
+- **Rationale**: containment-following would require re-laying out every
+  member card on each drag frame (and deciding relative offsets), which
+  fights the free-form canvas and makes drops ambiguous; keeping cards
+  independent is simpler, predictable, and matches the drop-based
+  assignment model. Inline rename avoids a blocking dialog inside the
+  canvas and keeps focus on the node being edited.
+- **Consequences**: `moveCluster` is a pure store update (unit-tested,
+  including the no-follow guarantee); WorkspaceCanvas routes cluster-id
+  position changes to it (tab ids are numeric, cluster ids start with
+  `cluster-`); ClusterNode owns the inline-edit state; mousedown on the
+  title/input/buttons stops propagation so editing never starts a node
+  drag or canvas pan; persistence format unchanged.
+
+## D14 — 150-tab performance: memoized cards + stable per-node data
+
+- **Decision**: TabNode and ClusterNode are wrapped in `React.memo`, and
+  WorkspaceCanvas keeps each node's `data` object referentially stable
+  across renders: a module-level `WeakMap<WorkspaceTab, TabNodeData>` /
+  `WeakMap<WorkspaceCluster, ClusterNodeData>` caches the previous data
+  object keyed by the tab/cluster object itself; it is reused when the
+  tab reference, selection flag, and badge (compared by value) are all
+  unchanged. All ReactFlow callbacks (`onNodesChange`, `onNodeDragStop`,
+  `onNodeClick`, `onMoveEnd`) are stable via `useCallback`; drag-stop
+  reads fresh state through `getState()` so it needs no deps. Verified by
+  a render-count test (`tests/renderCount.test.tsx`, happy-dom): with
+  150 cards + 2 clusters, moving/selecting/renaming one entity re-renders
+  exactly the affected node(s).
+- **Rationale**: `React.memo` alone is not enough — the canvas rebuilds
+  every node object (and thus every `data` object) on each store update,
+  so a shallow memo comparison would fail for all 150 cards. Zustand
+  replaces only the changed tab's object, so identity-keyed caching makes
+  unchanged cards' `data` references stable for free; WeakMap gives
+  automatic GC (no manual pruning) and no cross-session leakage. Badges
+  are derived (recomputed each pass), hence value comparison instead of
+  reference. No virtualization: at this scale memoized DOM is cheap and
+  virtualizing a free-form canvas would break drag/drop geometry.
+- **Consequences**: dragging one card re-renders one card; selection
+  changes re-render at most two cards (old + new); adding a tab renders
+  one card. The render counters (`tabNodeRenderCount`,
+  `clusterNodeRenderCount`) are test-only exports on the node components.
+  The render-count test stubs `ResizeObserver` so XYFlow never measures —
+  it asserts memoization, not layout. Dev dependency added: `happy-dom`
+  (test environment only).
+
+## D15 — Accessibility basics: cards as real keyboard controls + reduced motion
+
+- **Decision**: Tab cards are first-class keyboard controls: `role="button"`,
+  `tabIndex=0` (DOM order = tab order: clusters first, then tabs in store
+  order), a descriptive `aria-label` (`Tab card: <title> (<domain>)[, window
+  Wn]`) and `aria-pressed` mirroring selection. Focus and selection are kept
+  in sync both ways: focusing a card selects it (`onFocus` → `selectTab`, so
+  the global Enter path in `useKeyboardNav` works right after tabbing to a
+  card), and selecting a card moves DOM focus onto it (`useEffect` on
+  `selected`, `preventScroll`). Space activates the focused card (native
+  button semantics; Enter already worked from anywhere). Every other
+  interactive element carries an `aria-label` (toolbar search + buttons,
+  snapshot restore/delete, inspector activate/close, cluster rename/delete/
+  input — the latter from M5 item 2). `prefers-reduced-motion: reduce` is
+  honored two ways: a CSS media query disables all transitions/animations in
+  the app (including XYFlow's own), and `lib/reducedMotion.ts`
+  (`prefersReducedMotion()`, safe in non-browser envs) makes the canvas pass
+  `fitViewOptions={{ duration: 0 }}` so the initial fit is instant.
+- **Rationale**: cards are `div`s inside React Flow, so without explicit
+  roles they were invisible to assistive tech and unreachable by Tab. Making
+  focus imply selection (rather than maintaining a separate focus state)
+  reuses the existing spatial-nearest navigation reducer (D12) unchanged —
+  arrow keys, Enter and Escape all keep working with zero new state. A
+  change listener for `prefers-reduced-motion` is out of scope: the value is
+  read at render time, which covers the practical case (OS setting chosen
+  before opening the workspace).
+- **Consequences**: tabbing into the canvas lands on cluster controls, then
+  cards in store order; screen readers announce each card as a pressed/
+  unpressed button with title, domain and window. Reduced-motion users get
+  no pan/zoom animation on load and no CSS transitions anywhere in the app.
+  Verified by `tests/reducedMotion.test.ts` (5 tests: non-browser, missing
+  matchMedia, reduce on/off, throwing matchMedia) and
+  `tests/keyboardNavHook.test.tsx` (6 tests: roles/tab order/labels,
+  spatial arrows through the real hook, Enter activation via mocked adapter,
+  focus→select + Space-on-card activation, selection→focus, Escape, and no
+  hijacking while a real form control has focus). Axe-style deep audit
+  remains out of scope per the M5 task statement.

@@ -14,10 +14,12 @@ export default function Toolbar() {
       <input
         type="search"
         placeholder="Search title, URL, domain, cluster…"
+        aria-label="Search tabs by title, URL, domain or cluster"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
       />
       <button
+        aria-label="Create a new cluster"
         onClick={() => {
           const name = window.prompt('Cluster name');
           if (name) createCluster(name, suggestPosition(useWorkspaceStore.getState()));
@@ -26,6 +28,7 @@ export default function Toolbar() {
         New cluster
       </button>
       <button
+        aria-label="Save the current layout as a named snapshot"
         onClick={() => {
           const name = window.prompt('Snapshot name');
           if (name?.trim()) saveNamedSnapshot(name.trim());
@@ -38,7 +41,12 @@ export default function Toolbar() {
           {namedSnapshots.map((snap) => (
             <span key={snap.id} className="bw-snapshot-item">
               {snap.name}
-              <button onClick={() => restoreNamedSnapshot(snap.id)}>Restore</button>
+              <button
+                aria-label={`Restore snapshot ${snap.name}`}
+                onClick={() => restoreNamedSnapshot(snap.id)}
+              >
+                Restore
+              </button>
               <button
                 aria-label={`Delete snapshot ${snap.name}`}
                 onClick={() => {
