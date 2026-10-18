@@ -1,77 +1,39 @@
 # CURRENT_TASK.md
 
-- **Task**: M4 — Robust browser synchronization (branch `feature/m4`)
-- **Status**: done (started 2026-10-17, finished iteration 7; engine: pi
-      coding agent). All four items implemented and verified:
-      compile, 82/82 unit tests, wxt build, e2e 5/5 green at `830603e`.
-      Branch awaits merge to main (human decision).
+- **Task**: M5 — Interaction quality (branch `feature/m5`)
+- **Status**: active (started 2026-10-17, engine: pi coding agent)
 
-## Progress (iteration 6, 2026-10-17)
+## M5 task statement
 
-- [x] Item 1 — tab identity by tabId: `lib/tabIdentity.ts` + D9, snapshot
-      v2 with v1 fallback; committed `c01a453` (compile, 54/54 unit,
-      build, e2e 4/4 green)
-- [x] Item 2 — live chrome.tabs events → store: pure reducers
-      `lib/tabEvents.ts` (created/removed/updated/activated, idempotent,
-      tabId-first so navigate keeps position+cluster), debounced (150 ms)
-      `useTabEvents.ts` hook wired in App, store action `applyTabEvents`,
-      `nextFreePositionFor` layout helper; 20 unit tests in
-      `tests/tabEvents.test.ts`; D10 ADR; committed `d8c8892`
-      (compile, 74/74 unit, build, e2e 4/4 green)
-- [x] Item 3 — multi-window: windowId on cards + badge/label:
-      `lib/windowBadge.ts` (pure `windowBadges` — W1..Wn by ascending
-      windowId, stable per-window hue, badges only with ≥2 known windows),
-      rendered as a pill on TabNode (top-right, per-window color) + window
-      label in InspectorPanel; WorkspaceCanvas computes badges from the
-      full tab list so labels stay stable under search filters; 8 unit
-      tests in `tests/windowBadge.test.ts`; D11 ADR; committed `5ced706`
-      (compile, 82/82 unit, build, e2e 4/4 green)
-- [x] Item 4 — e2e live-sync spec: `tests/e2e/smoke.spec.ts` "live
-      sync" test — open a uniquely-URL'd tab → its card appears on the
-      canvas without reload (live chrome.tabs events); close it → card
-      gone; drag a second tab onto a fresh cluster, navigate that same
-      real tab in place → card text updates in place at the same screen
-      position, same tabId (chrome.tabs API), position + clusterId
-      preserved in the persisted v2 snapshot; test closes its own tabs.
-      Committed `830603e` (compile, 82/82 unit, build, e2e 5/5 green)
+Make the canvas pleasant to use, not just functional. Scope:
 
-M4 is complete. Next milestone candidates (see .agent/TASKS.md "Later"):
-M5 visual test loop / keyboard+accessibility, M6 layout algorithms.
-
-## M4 task statement
-
-Make the canvas a live mirror of the real browser: whatever happens in
-Chrome shows up on the canvas without a reload, and user arrangement
-survives it. Scope:
-
-1. **Tab identity by tabId, not URL** — the current resync matches
-   known tabs by URL (`lib/browserAdapter.ts queryWorkspaceTabs`), so a
-   tab that navigates loses its position and cluster. Key persisted
-   state by tabId; keep URL only as display data. Migration: existing
-   snapshots still load (fall back to URL match when tabId unknown).
-2. **Live events** — subscribe to `chrome.tabs` events and keep the
-   store in sync:
-   - `onCreated` → new card appears (next free position, no overlap);
-   - `onRemoved` → card disappears (its cluster assignment goes too,
-     clusters themselves stay);
-   - `onUpdated` (URL/title) → card text updates in place, position and
-     cluster preserved;
-   - `onActivated` → canvas selection follows the real active tab.
-   Debounce bursts (e.g. restoring a closed window fires many events).
-3. **Multi-window behavior** — track `windowId` on each card; all
-   windows' tabs appear on the canvas. A small window badge/label on the
-   card is enough; no per-window grouping required yet.
-4. **Tests** — unit tests for the identity migration and the event→store
-   reducers (mock the chrome.tabs events); extend the e2e smoke spec for
-   at least: open a new tab → card appears; close it → card gone;
-   navigate a tab → position/cluster preserved.
+1. **Keyboard navigation** — arrow keys move a visible focus/selection
+   between tab cards (reading order or spatial-nearest, pick one and
+   document in docs/DECISIONS.md); Enter activates the real tab (reuse
+   the M3 activateTab path); Escape clears selection. Covered by unit
+   tests for the navigation reducer and one e2e using page.keyboard.
+2. **Cluster interaction, finished** — clusters are currently
+   non-draggable (M2 deferred it). Make clusters draggable and persist
+   their positions (they already exist in the snapshot schema); member
+   cards do NOT need to follow a moving cluster (document that choice).
+   Replace `window.prompt` rename with inline editing (double-click the
+   cluster title). Unit tests for the store side.
+3. **Performance with many tabs** — the canvas must stay smooth with
+   150 cards. Memoize TabNode/ClusterNode (React.memo) so dragging one
+   card does not re-render the rest; verify with a lightweight render-
+   count test or document manual measurement in RUN_LOG. No exotic
+   virtualization — memoization and stable callbacks only.
+4. **Accessibility basics** — every interactive element gets an
+   aria-label; cards expose role="button" (or real buttons) and tab
+   order; honor prefers-reduced-motion for canvas transitions. Axe-style
+   deep audit is out of scope; labels + roles + reduced motion only.
 
 Rules: check loop (`npm run compile && npm test && npm run build &&
-npm run test:e2e`) green before each commit; work on `feature/m4`;
+npm run test:e2e`) green before each commit; work on `feature/m5`;
 ordinary commits allowed; do NOT push or merge. See .agent/POLICY.md.
 
-## M3 archive
+## M4 archive
 
-M3 (search filter, named snapshots, click-to-activate) complete —
-2 iterations with the pi engine, merged to `main` (`a971d37`).
-Details in `.agent/RUN_LOG.md`.
+M4 (tabId identity, live chrome.tabs sync, multi-window badges)
+complete — 7 iterations, merged to `main` (`0ecda5b`). Details in
+`.agent/RUN_LOG.md`.
