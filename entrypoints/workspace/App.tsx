@@ -14,6 +14,7 @@ import {
 } from '../../lib/workspaceStorage';
 import { serializeWorkspace } from '../../lib/persistence';
 import { useTabEvents } from './useTabEvents';
+import { useKeyboardNav } from './useKeyboardNav';
 
 /**
  * Workspace is a full extension page (not a toolbar popup) — see
@@ -26,6 +27,9 @@ export default function App() {
 
   // Live chrome.tabs events → store (debounced batches, M4 item 2).
   useTabEvents();
+
+  // Arrow keys / Enter / Escape navigate + activate cards (M5 item 1, D12).
+  useKeyboardNav();
 
   // Initial load: persisted layout merged onto live tabs, plus any
   // user-named snapshots.

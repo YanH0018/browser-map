@@ -11,9 +11,13 @@ function hueFrom(str: string): number {
 
 /** Visual card for one browser tab. */
 export default function TabNode({ data }: NodeProps) {
-  const { tab, badge } = data as { tab: WorkspaceTab; badge?: WindowBadge };
+  const { tab, badge, selected } = data as {
+    tab: WorkspaceTab;
+    badge?: WindowBadge;
+    selected?: boolean;
+  };
   return (
-    <div className="bw-tab-card">
+    <div className={selected ? 'bw-tab-card bw-tab-card--selected' : 'bw-tab-card'}>
       {badge && (
         <span
           className="bw-tab-badge"

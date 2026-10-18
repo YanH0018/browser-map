@@ -96,6 +96,14 @@ body {
   font-size: 13px;
 }
 
+/* Keyboard navigation (M5 item 1, D12): visible selection indicator. */
+.bw-tab-card--selected {
+  border-color: #4f8cff;
+  box-shadow:
+    0 0 0 2px rgba(79, 140, 255, 0.4),
+    0 0 12px rgba(79, 140, 255, 0.25);
+}
+
 /* Multi-window badge (M4 item 3): which browser window the tab lives in. */
 .bw-tab-badge {
   position: absolute;

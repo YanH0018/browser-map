@@ -123,3 +123,32 @@ ADR-style. Newest last. Each entry: decision, rationale, consequences.
   while a search filter hides cards; InspectorPanel shows the window
   label for the selected tab; persistence format unchanged (windowId was
   already on WorkspaceTab via normalizeTab).
+
+## D12 — Keyboard navigation: spatial-nearest arrow movement
+
+- **Decision**: arrow keys move a visible card selection by *spatial
+  nearest* in the pressed direction (not reading order): candidates are
+  visible cards whose position lies in front of the arrow (positive
+  projection); among them the one minimizing
+  `distance × (1 + |perpendicular| / forward)` wins, with the smaller
+  tabId as deterministic tiebreak. Nothing selected → first visible card;
+  no candidate in that direction → stay put (no wrap-around). Enter
+  activates the real tab behind the selected card, reusing M3's
+  `activateBrowserTab` path; Escape clears selection. The geometry is a
+  pure reducer (`lib/keyboardNav.ts`, `nextSelectedTabId`); a
+  document-level capture-phase keydown hook (`useKeyboardNav`) wires it,
+  ignoring keys while an input/button/contenteditable has focus and never
+  hijacking Cmd/Ctrl/Alt combos.
+- **Rationale**: the canvas is free-form 2D — cards are dragged anywhere,
+  so row-major reading order would jump unpredictably; spatial-nearest is
+  the standard for 2D canvases (Figma/Keynote-style) and matches what the
+  user sees. A pure reducer keeps the geometry unit-testable without a
+  browser; capture phase guarantees we win over React Flow's own key
+  handling.
+- **Consequences**: the selection highlight is a CSS class on the card
+  (`bw-tab-card--selected`), deliberately NOT XYFlow's `node.selected`,
+  which would enable React Flow's arrow-move / delete key semantics;
+  navigation respects the search filter (only visible cards are
+  candidates); after Enter, the live `onActivated` event keeps selection
+  on the activated card (D10); cards are uniform-sized, so top-left
+  positions give the same relative vectors as center math.

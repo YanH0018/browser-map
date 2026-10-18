@@ -24,6 +24,10 @@ export default function WorkspaceCanvas() {
   // Badges derive from the full tab list so window labels stay stable
   // while a search filter hides cards.
   const allTabs = useWorkspaceStore((s) => s.tabs);
+  // Keyboard-navigation selection (M5 item 1, D12): rendered as a CSS
+  // class on the card. Deliberately NOT XYFlow's node.selected, which
+  // would enable React Flow's own arrow-move / delete key semantics.
+  const selectedTabIds = useWorkspaceStore((s) => s.selectedTabIds);
   const clusters = useWorkspaceStore((s) => s.clusters);
   const moveTab = useWorkspaceStore((s) => s.moveTab);
   const assignTab = useWorkspaceStore((s) => s.assignTab);
@@ -47,10 +51,10 @@ export default function WorkspaceCanvas() {
       id: String(t.tabId),
       type: 'tab',
       position: t.position,
-      data: { tab: t, badge: badges.get(t.windowId) },
+      data: { tab: t, badge: badges.get(t.windowId), selected: t.tabId === selectedTabIds[0] },
     }));
     return [...clusterNodes, ...tabNodes];
-  }, [tabs, allTabs, clusters]);
+  }, [tabs, allTabs, clusters, selectedTabIds]);
 
   const onNodesChange = (changes: NodeChange[]) => {
     for (const change of changes) {

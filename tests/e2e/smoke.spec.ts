@@ -364,3 +364,83 @@ test('live sync: open → card appears; close → gone; navigate keeps position/
 
   await page.screenshot({ path: 'test-results/m4-live-sync.png', fullPage: true });
 });
+
+/**
+ * M5 acceptance (item 1): keyboard navigation. Arrow keys move a visible
+ * selection between cards (spatial-nearest, D12), Enter activates the real
+ * tab behind the selected card (M3 path), Escape clears the selection.
+ */
+test('keyboard nav: arrows move selection, Enter activates real tab, Escape clears', async () => {
+  const kappaUrl = 'data:text/html,<title>Kappa</title>';
+  const lambdaUrl = 'data:text/html,<title>Lambda</title>';
+  await (await context.newPage()).goto(kappaUrl);
+  await (await context.newPage()).goto(lambdaUrl);
+
+  let worker = context.serviceWorkers()[0];
+  if (!worker) worker = await context.waitForEvent('serviceworker');
+  const extensionId = new URL(worker.url()).host;
+
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/workspace.html`);
+
+  const kappaCard = page.locator('.bw-tab-card', { hasText: 'Kappa' });
+  const lambdaCard = page.locator('.bw-tab-card', { hasText: 'Lambda' });
+  await expect(kappaCard).toBeVisible();
+  await expect(lambdaCard).toBeVisible();
+  // Let the initial sync and any pending debounced saves settle.
+  await page.waitForTimeout(700);
+
+  const selectedCard = () => page.locator('.bw-tab-card--selected');
+  await expect(selectedCard()).toHaveCount(0);
+
+  // The two fresh cards land in the same cascade row (nextFreePositionFor).
+  // Determine which is left/right from their on-screen boxes rather than
+  // assuming absolute layout (earlier tests leave other cards behind).
+  const kappaBox = (await kappaCard.boundingBox())!;
+  const lambdaBox = (await lambdaCard.boundingBox())!;
+  expect(Math.abs(kappaBox.y - lambdaBox.y)).toBeLessThan(5); // same row
+  const kappaIsLeft = kappaBox.x < lambdaBox.x;
+  const [leftCard, rightCard] = kappaIsLeft ? [kappaCard, lambdaCard] : [lambdaCard, kappaCard];
+  const leftUrl = kappaIsLeft ? kappaUrl : lambdaUrl;
+  const rightUrl = kappaIsLeft ? lambdaUrl : kappaUrl;
+
+  // Clicking a card selects it (existing behavior) → visible highlight.
+  await leftCard.click();
+  await expect(selectedCard()).toHaveCount(1);
+  await expect(leftCard).toHaveClass(/bw-tab-card--selected/);
+
+  // ArrowRight → spatially nearest card to the right (the other fresh card,
+  // same row beats any diagonal card from earlier tests).
+  await page.keyboard.press('ArrowRight');
+  await expect(rightCard).toHaveClass(/bw-tab-card--selected/);
+  await expect(leftCard).not.toHaveClass(/bw-tab-card--selected/);
+
+  // ArrowLeft → back to the left card.
+  await page.keyboard.press('ArrowLeft');
+  await expect(leftCard).toHaveClass(/bw-tab-card--selected/);
+
+  // Escape clears the selection.
+  await page.keyboard.press('Escape');
+  await expect(selectedCard()).toHaveCount(0);
+
+  // Enter activates the real tab behind the selected card (M3 path).
+  await rightCard.click();
+  const activeTabUrls = () =>
+    page.evaluate(
+      () =>
+        new Promise<string[]>((resolve) => {
+          const chromeApi = (window as unknown as { chrome: any }).chrome;
+          chromeApi.tabs.query(
+            { active: true },
+            (tabs: Array<{ url?: string }>) => resolve(tabs.map((t) => t.url ?? '')),
+          );
+        }),
+    );
+
+  await page.keyboard.press('Enter');
+  await expect.poll(activeTabUrls).toContain(rightUrl);
+  const urls = await activeTabUrls();
+  expect(urls).not.toContain(leftUrl);
+
+  await page.screenshot({ path: 'test-results/m5-keyboard-nav.png', fullPage: true });
+});
