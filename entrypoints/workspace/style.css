@@ -55,6 +55,22 @@ body {
   gap: 6px;
 }
 
+.bw-toolbar button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.bw-semantic-notice {
+  flex: 1;
+  min-width: 200px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #7a5b2b;
+  background: #33290f;
+  color: #e8c66a;
+  font-size: 12px;
+}
+
 .bw-snapshots {
   display: flex;
   flex-wrap: wrap;

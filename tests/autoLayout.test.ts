@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DOMAIN_CLUSTER_SIZE,
+  AUTO_CLUSTER_SIZE,
   OTHER_DOMAIN_NAME,
   TIDY_GRID_DEFAULTS,
   groupByDomain,
@@ -191,7 +191,7 @@ describe('groupByDomain', () => {
 
     expect(newClusters).toHaveLength(2);
     for (const c of newClusters) {
-      expect(c.size).toEqual(DOMAIN_CLUSTER_SIZE);
+      expect(c.size).toEqual(AUTO_CLUSTER_SIZE);
       for (const other of taken) {
         const w = Math.min(c.position.x + c.size.width, other.position.x + other.size.width) -
           Math.max(c.position.x, other.position.x);

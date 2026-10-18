@@ -548,3 +548,68 @@ test('tidy grid: cards land on the regular grid; safety snapshot; reload persist
 
   await page.screenshot({ path: 'test-results/m6-tidy-grid.png', fullPage: true });
 });
+
+/**
+ * M7 acceptance (items 3 + 4): the "Suggest clusters" toolbar button
+ * exists, and when the local embedding endpoint is unreachable (mocked via
+ * request interception — no live model in e2e, D18) a click surfaces the
+ * failure notice and changes NOTHING: no new clusters, tabs stay
+ * unclustered, the named-snapshot list is untouched (a failed run must not
+ * even create the before-autolayout safety snapshot).
+ */
+test('suggest clusters: button exists; endpoint failure renders a notice, changes nothing', async () => {
+  const xiUrl = 'data:text/html,<title>Xi</title>';
+  const psiUrl = 'data:text/html,<title>Psi</title>';
+  await (await context.newPage()).goto(xiUrl);
+  await (await context.newPage()).goto(psiUrl);
+
+  let worker = context.serviceWorkers()[0];
+  if (!worker) worker = await context.waitForEvent('serviceworker');
+  const extensionId = new URL(worker.url()).host;
+
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/workspace.html`);
+
+  const xiCard = page.locator('.bw-tab-card', { hasText: 'Xi' });
+  const psiCard = page.locator('.bw-tab-card', { hasText: 'Psi' });
+  await expect(xiCard).toBeVisible();
+  await expect(psiCard).toBeVisible();
+
+  // Item 3: the toolbar button exists.
+  const suggestButton = page.getByRole('button', { name: 'Suggest clusters' });
+  await expect(suggestButton).toBeVisible();
+
+  // Let hydration + live sync settle and their debounced saves flush, so
+  // the pre-click storage read matches the in-memory state at click time.
+  await page.waitForTimeout(1200);
+  const pre = (await readSnapshot(page))!;
+  const preSnaps = await readNamedSnapshots(page);
+
+  // Item 4: mock the local endpoint as unreachable (deterministic even if
+  // LM Studio happens to be running on :1234).
+  await page.route('**/v1/embeddings', (route) => route.abort());
+
+  await suggestButton.click();
+
+  // The failure notice renders in the toolbar (role=status, aria-live).
+  const notice = page.locator('.bw-semantic-notice');
+  await expect(notice).toBeVisible();
+  await expect(notice).toContainText(/Semantic clustering unavailable/);
+
+  // The run finished: the button is re-enabled (never hangs).
+  await expect(suggestButton).toBeEnabled();
+
+  // Nothing was mutated: same tab set, no new clusters, Xi/Psi still
+  // unclustered, and the named-snapshot list is byte-identical (a failed
+  // run must not create or touch before-autolayout).
+  await page.waitForTimeout(1200);
+  const post = (await readSnapshot(page))!;
+  expect(post.tabs.map(tabKey).sort()).toEqual(pre.tabs.map(tabKey).sort());
+  expect(post.clusters).toEqual(pre.clusters);
+  for (const url of [xiUrl, psiUrl]) {
+    expect(post.tabs.find((t) => t.url === url)!.clusterId).toBeUndefined();
+  }
+  expect(await readNamedSnapshots(page)).toEqual(preSnaps);
+
+  await page.screenshot({ path: 'test-results/m7-semantic-failure.png', fullPage: true });
+});

@@ -301,3 +301,45 @@ ADR-style. Newest last. Each entry: decision, rationale, consequences.
   automatically (grouping is an explicit click, not a live rule). The
   `before-autolayout` snapshot always reflects the state before the most
   recent auto-layout click, not a history of all previous states.
+
+## D18 — Semantic clustering: local embeddings, greedy threshold 0.5
+
+- **Decision**: "Suggest clusters" embeds each UNCLUSTERED tab's
+  `title + " " + hostname` with the LOCAL LM Studio model
+  (`text-embedding-nomic-embed-text-v1.5`, OpenAI-compatible endpoint
+  `http://localhost:1234/v1/embeddings`), then greedily clusters the
+  vectors by cosine similarity with a fixed threshold of **0.5**
+  (`DEFAULT_SIMILARITY_THRESHOLD` in `lib/semantic.ts`). Pairs are sorted
+  by similarity descending and union-find-merged while `sim ≥ threshold`
+  (single linkage); groups of fewer than 2 members (`MIN_CLUSTER_SIZE`)
+  stay unclustered. Each surviving group becomes a new cluster named by
+  its dominant domain (fallback: common title prefix, then first member's
+  title), placed at the first free cascade slot (M6 geometry). Vectors are
+  cached by URL in a separate `embeddingCache` storage key so reloads never
+  re-embed. The math is pure and library-free (`lib/semantic.ts`); the
+  fetch pipeline is isolated in `lib/embeddings.ts`.
+- **Rationale**: threshold calibration — on nomic-embed-text-v1.5,
+  same-topic `title + hostname` pairs measured 0.57–0.85 while cross-topic
+  pairs measured 0.36–0.43; 0.5 sits in the gap between them. Single
+  linkage (merge while any pair is above threshold) matches how humans
+  group tabs: a chain of related pages should land together even when the
+  endpoints are only loosely similar. Restricting to unclustered tabs and
+  never touching existing clusters keeps the operation additive, exactly
+  like M6's group-by-domain (D17). The `before-autolayout` safety snapshot
+  is upserted BEFORE any mutation (M6 pattern), so one Restore click
+  reverts a suggestion run. Embedding is async and failure-tolerant: an
+  unreachable endpoint, unloaded model or malformed response surfaces a
+  toolbar notice and changes nothing — the canvas is never blocked or
+  crashed. No manifest host permission is needed: MV3 extension pages may
+  fetch `http://localhost` (loopback is exempt from the mixed-content and
+  host-permission rules for local servers).
+- **Consequences**: re-clicking "Suggest clusters" after a successful run
+  is a no-op (the tabs are now clustered); a tab that navigates to a new
+  URL gets a fresh vector on the next run (cache is keyed by URL, so an
+  unchanged URL reuses its vector). The threshold is a documented constant,
+  not a user setting — if real usage shows it is too aggressive or too
+  timid, the constant (and this ADR) change in one place. Embedding cost is
+  bounded by the cache: each distinct URL is embedded at most once per
+  machine. The embedding cache is an optimization, not a source of truth —
+  malformed entries are dropped on load (`deserializeEmbeddingCache`), and
+  deleting it only costs a re-embed.

@@ -75,8 +75,8 @@ export function tidyGridPositions(
 /** Fallback group name for tabs without a parseable domain (chrome://, data:). */
 export const OTHER_DOMAIN_NAME = 'Other';
 
-/** Default frame size for auto-created domain clusters (same as manual). */
-export const DOMAIN_CLUSTER_SIZE: Size = { width: 360, height: 260 };
+/** Default frame size for auto-created clusters (same as manual). */
+export const AUTO_CLUSTER_SIZE: Size = { width: 360, height: 260 };
 
 /** Cascade geometry for auto-created domain clusters. */
 const DOMAIN_CLUSTER_ORIGIN: Position = { x: 80, y: 80 };
@@ -101,10 +101,13 @@ function clusterSlot(index: number): Position {
 }
 
 /** First cascade slot (from `startSlot`) that does not overlap any taken frame. */
-function nextFreeClusterPosition(taken: readonly WorkspaceCluster[], startSlot: number): Position {
+export function nextFreeClusterPosition(
+  taken: readonly WorkspaceCluster[],
+  startSlot: number,
+): Position {
   for (let i = startSlot; ; i++) {
     const slot = clusterSlot(i);
-    const candidate = { x: slot.x, y: slot.y, width: DOMAIN_CLUSTER_SIZE.width, height: DOMAIN_CLUSTER_SIZE.height };
+    const candidate = { x: slot.x, y: slot.y, width: AUTO_CLUSTER_SIZE.width, height: AUTO_CLUSTER_SIZE.height };
     const overlaps = taken.some(
       (c) => overlapArea(candidate, { x: c.position.x, y: c.position.y, width: c.size.width, height: c.size.height }) > 0,
     );
@@ -113,7 +116,7 @@ function nextFreeClusterPosition(taken: readonly WorkspaceCluster[], startSlot: 
 }
 
 /** Stable id that does not collide with existing or already-created clusters. */
-function uniqueClusterId(base: string, taken: readonly WorkspaceCluster[]): string {
+export function uniqueClusterId(base: string, taken: readonly WorkspaceCluster[]): string {
   let id = base;
   for (let n = 2; taken.some((c) => c.id === id); n++) {
     id = `${base}-${n}`;
@@ -154,7 +157,7 @@ export function groupByDomain(
       id: uniqueClusterId(`cluster-domain-${name}`, taken),
       name,
       position: nextFreeClusterPosition(taken, slotIndex),
-      size: { ...DOMAIN_CLUSTER_SIZE },
+      size: { ...AUTO_CLUSTER_SIZE },
     };
     newClusters.push(cluster);
     slotIndex++;
