@@ -90,7 +90,7 @@ accept() {
   if [ -n "$(git status --porcelain)" ]; then
     say "✗ dirty tree on $branch"; return 1
   fi
-  say "running check loop on $branch…"
+  say "running check loop on ${branch}…"
   compile=$(npm run compile >/dev/null 2>&1 && echo PASS || echo FAIL)
   test=$(npm test >/dev/null 2>&1 && echo PASS || echo FAIL)
   build=$(npm run build >/dev/null 2>&1 && echo PASS || echo FAIL)
