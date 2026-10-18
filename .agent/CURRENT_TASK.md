@@ -7,8 +7,12 @@
 
 - [x] Item 1 — keyboard navigation (spatial-nearest, D12): `000fc6d`
 - [x] Item 2 — cluster drag + inline rename (D13): `5f31b37`
-- [ ] Item 3 — performance with 150 tabs (React.memo TabNode/ClusterNode,
-      stable callbacks; render-count test or documented measurement)
+- [x] Item 3 — performance with 150 tabs (D14): `4d2f857` — React.memo
+      on TabNode/ClusterNode + WeakMap-cached stable per-node `data`
+      objects (badges compared by value) + useCallback-stable ReactFlow
+      callbacks; render-count test `tests/renderCount.test.tsx`
+      (happy-dom, 150 cards + 2 clusters) proves move/select/rename/add
+      re-renders exactly the affected node(s); dev dep happy-dom
 - [ ] Item 4 — accessibility basics (aria-labels, roles/tab order on
       cards, prefers-reduced-motion)
 

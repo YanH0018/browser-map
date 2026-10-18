@@ -417,3 +417,40 @@ Notes:              Item 2 complete. Clusters are now draggable frames:
                     measurement), item 4 (a11y basics — aria-labels,
                     roles/tab order on cards, prefers-reduced-motion).
 ```
+
+```
+Task:               M5 iteration 3 — performance with 150 tabs (item 3)
+Model:              pi coding agent, qwen3.8-27b-mlx (LM Studio)
+Elapsed time:       ~25 min
+Tool calls:         ~30
+Build attempts:     1 (compile PASS first run)
+Failed tests:       none — new render-count test passed on first run;
+                    full loop green (compile, 101/101 unit, build, e2e 6/6)
+Self-recovered:     0
+Human intervention: 0
+Final commit:       4d2f857 on feature/m5 (code + tests + D14);
+                   task files separate
+Status:             PASS
+Notes:              Item 3 complete (D14). React.memo alone was not
+                    enough: the canvas rebuilt every node's `data` object
+                    on each store update, so a shallow memo comparison
+                    would have failed for all 150 cards. Fix: WeakMap
+                    caches (keyed by tab/cluster object identity) reuse
+                    the previous per-node `data` reference when the tab,
+                    selection flag and badge (value-compared) are
+                    unchanged — zustand replaces only the changed tab's
+                    object, so stability is free; WeakMap gives GC with
+                    no pruning. All ReactFlow callbacks are stable via
+                    useCallback (drag-stop reads getState()). Verified by
+                    tests/renderCount.test.tsx: renders the real
+                    WorkspaceCanvas in happy-dom with 150 cards + 2
+                    clusters (ResizeObserver stubbed so RF never measures)
+                    and asserts exact render deltas — moveTab +1 card,
+                    selectTab +1/+2 cards, moveCluster/renameCluster +1
+                    cluster with 0 tabs, setTabs add +1 card, in-place tab
+                    update (live-sync shape) +1 card. 6/6 pass; full suite
+                    now 101 unit tests. Dev dep added: happy-dom (test env
+                    only). Remaining M5: item 4 (a11y basics — aria-labels
+                    on all interactive elements, role/tab order on cards,
+                    prefers-reduced-motion).
+```

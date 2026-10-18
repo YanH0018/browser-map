@@ -40,9 +40,13 @@ build, e2e 3/3 green at `60e9463`).
       replaces `window.prompt` (double-click title or ✎; Enter/blur
       commits, Escape cancels); 2 new store tests (move + no-follow,
       unknown-id no-op) (`5f31b37`)
-- [ ] Performance with 150 tabs (M5) — memoize TabNode/ClusterNode
-      (React.memo), stable callbacks; render-count test or documented
-      manual measurement in RUN_LOG
+- [x] Performance with 150 tabs (M5) — TabNode/ClusterNode wrapped in
+      React.memo; per-node `data` objects kept referentially stable via
+      WeakMap caches keyed by tab/cluster identity (badges compared by
+      value); all ReactFlow callbacks stable via useCallback; render-count
+      test `tests/renderCount.test.tsx` (happy-dom, 150 cards + 2
+      clusters): move/select/rename/add re-renders exactly the affected
+      node(s) (D14, `4d2f857`)
 - [ ] Accessibility basics (M5) — aria-labels on all interactive
       elements, role="button"/tab order on cards, honor
       prefers-reduced-motion for canvas transitions

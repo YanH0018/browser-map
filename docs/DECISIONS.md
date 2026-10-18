@@ -175,3 +175,34 @@ ADR-style. Newest last. Each entry: decision, rationale, consequences.
   `cluster-`); ClusterNode owns the inline-edit state; mousedown on the
   title/input/buttons stops propagation so editing never starts a node
   drag or canvas pan; persistence format unchanged.
+
+## D14 — 150-tab performance: memoized cards + stable per-node data
+
+- **Decision**: TabNode and ClusterNode are wrapped in `React.memo`, and
+  WorkspaceCanvas keeps each node's `data` object referentially stable
+  across renders: a module-level `WeakMap<WorkspaceTab, TabNodeData>` /
+  `WeakMap<WorkspaceCluster, ClusterNodeData>` caches the previous data
+  object keyed by the tab/cluster object itself; it is reused when the
+  tab reference, selection flag, and badge (compared by value) are all
+  unchanged. All ReactFlow callbacks (`onNodesChange`, `onNodeDragStop`,
+  `onNodeClick`, `onMoveEnd`) are stable via `useCallback`; drag-stop
+  reads fresh state through `getState()` so it needs no deps. Verified by
+  a render-count test (`tests/renderCount.test.tsx`, happy-dom): with
+  150 cards + 2 clusters, moving/selecting/renaming one entity re-renders
+  exactly the affected node(s).
+- **Rationale**: `React.memo` alone is not enough — the canvas rebuilds
+  every node object (and thus every `data` object) on each store update,
+  so a shallow memo comparison would fail for all 150 cards. Zustand
+  replaces only the changed tab's object, so identity-keyed caching makes
+  unchanged cards' `data` references stable for free; WeakMap gives
+  automatic GC (no manual pruning) and no cross-session leakage. Badges
+  are derived (recomputed each pass), hence value comparison instead of
+  reference. No virtualization: at this scale memoized DOM is cheap and
+  virtualizing a free-form canvas would break drag/drop geometry.
+- **Consequences**: dragging one card re-renders one card; selection
+  changes re-render at most two cards (old + new); adding a tab renders
+  one card. The render counters (`tabNodeRenderCount`,
+  `clusterNodeRenderCount`) are test-only exports on the node components.
+  The render-count test stubs `ResizeObserver` so XYFlow never measures —
+  it asserts memoization, not layout. Dev dependency added: `happy-dom`
+  (test environment only).
