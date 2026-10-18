@@ -377,3 +377,43 @@ Notes:              No product code changes needed; the live pipeline
                     M4 done; feature/m4 awaits merge (human). Next:
                     M5/M6 per .agent/TASKS.md "Later".
 ```
+
+---
+
+```
+Task:               M5 iteration 2 — cluster drag + inline rename (item 2)
+Model:              pi coding agent, qwen3.8-27b-mlx (LM Studio)
+Elapsed time:       ~15 min
+Tool calls:         ~20
+Build attempts:     1 (compile PASS first run)
+Failed tests:       1 e2e run (live-sync drag-onto-cluster flake —
+                    clusterId undefined after raw-mouse drag; passed on
+                    immediate rerun, 6/6)
+Self-recovered:     1 (e2e flake diagnosed as timing, rerun green;
+                    recorded in TASKS.md known issues)
+Human intervention: 0
+Final commit:       5f31b37 on feature/m5 (code + tests + D13);
+                   task files separate
+Status:             PASS
+Notes:              Item 2 complete. Clusters are now draggable frames:
+                    new store action moveCluster (pure, unit-tested),
+                    WorkspaceCanvas routes cluster-id position changes to
+                    it (tab ids numeric, cluster ids 'cluster-...');
+                    positions persist via the existing v2 snapshot schema
+                    (no format change). Member cards do NOT follow a
+                    moving cluster — documented as D13 (assignment is by
+                    explicit drop, not containment). Inline rename
+                    replaces window.prompt: double-click the cluster
+                    title (or ✎) edits in place; Enter/blur commits,
+                    Escape cancels; mousedown stopPropagation on
+                    title/input/buttons so editing never starts a node
+                    drag or pan; aria-labels added to the rename/delete
+                    buttons and input (feeds item 4). +2 store tests
+                    (move without moving members; unknown-id no-op).
+                    Check loop green: compile, 95/95 unit, wxt build
+                    (451.64 kB), e2e 6/6 in headed Chromium.
+                    Remaining M5: item 3 (150-tab perf — React.memo +
+                    stable callbacks, render-count test or documented
+                    measurement), item 4 (a11y basics — aria-labels,
+                    roles/tab order on cards, prefers-reduced-motion).
+```

@@ -3,6 +3,18 @@
 - **Task**: M5 — Interaction quality (branch `feature/m5`)
 - **Status**: active (started 2026-10-17, engine: pi coding agent)
 
+## Progress
+
+- [x] Item 1 — keyboard navigation (spatial-nearest, D12): `000fc6d`
+- [x] Item 2 — cluster drag + inline rename (D13): `5f31b37`
+- [ ] Item 3 — performance with 150 tabs (React.memo TabNode/ClusterNode,
+      stable callbacks; render-count test or documented measurement)
+- [ ] Item 4 — accessibility basics (aria-labels, roles/tab order on
+      cards, prefers-reduced-motion)
+
+Note: e2e `live sync` drag flaked once during item 2 (passed on rerun,
+6/6 green at `5f31b37`); see TASKS.md known issues.
+
 ## M5 task statement
 
 Make the canvas pleasant to use, not just functional. Scope:

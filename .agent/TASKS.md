@@ -27,7 +27,27 @@ Format: `[ ] task (milestone)` — mark `[x]` with the commit hash when done.
 M2 complete: all four items verified end-to-end (compile, 32/32 unit,
 build, e2e 3/3 green at `60e9463`).
 
-## Now (M4 — Robust browser synchronization)
+## Now (M5 — Interaction quality)
+
+- [x] Keyboard navigation: spatial-nearest arrows, Enter activates,
+      Escape clears (M5) — pure reducer `lib/keyboardNav.ts` +
+      `useKeyboardNav` capture-phase hook (D12); 10 unit tests in
+      `tests/keyboardNav.test.ts`; e2e "keyboard nav" spec using
+      page.keyboard (`000fc6d`)
+- [x] Cluster interaction finished (M5) — clusters draggable via new
+      store action `moveCluster` (positions already in v2 snapshot schema);
+      member cards do NOT follow a moving cluster (D13); inline rename
+      replaces `window.prompt` (double-click title or ✎; Enter/blur
+      commits, Escape cancels); 2 new store tests (move + no-follow,
+      unknown-id no-op) (`5f31b37`)
+- [ ] Performance with 150 tabs (M5) — memoize TabNode/ClusterNode
+      (React.memo), stable callbacks; render-count test or documented
+      manual measurement in RUN_LOG
+- [ ] Accessibility basics (M5) — aria-labels on all interactive
+      elements, role="button"/tab order on cards, honor
+      prefers-reduced-motion for canvas transitions
+
+## Done (M4 — Robust browser synchronization)
 
 - [x] Tab identity by tabId, not URL (M4) — `lib/tabIdentity.ts`
       (`resolveTabState`, tabId-first + URL fallback for v1/stale ids),
@@ -76,7 +96,6 @@ e2e 4/4 at `a880f4a`).
 
 - [ ] Real Playwright e2e suite per `tests/e2e/README.md` (M4)
 - [ ] Visual test loop: screenshot → vision-model inspection (M5)
-- [ ] Keyboard navigation + accessibility pass (M5)
 - [ ] Automatic layout algorithms (M6)
 - [ ] Local embeddings + semantic clustering (M7)
 - [ ] Natural-language workspace commands via local model (M8)
@@ -84,3 +103,4 @@ e2e 4/4 at `a880f4a`).
 ## Known issues
 
 - [ ] e2e `reload restores positions and clusters` flaked once right after a fresh build (clusterId undefined post-reload); passes on rerun, 3/3 green on main. Suspected hydration/resync race on cold extension load — harden with an explicit wait-for-hydration in the test or store.
+- [ ] e2e `live sync` drag-onto-cluster flaked once during M5 item 2 (clusterId undefined after the raw-mouse drag; passed on immediate rerun, 6/6). Same suspected class: timing of the raw-mouse drag / debounced save. Candidate hardening: wait for the persisted clusterId (poll storage) instead of a fixed 1200 ms sleep.
