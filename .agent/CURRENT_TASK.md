@@ -3,7 +3,7 @@
 - **Task**: M4 — Robust browser synchronization (branch `feature/m4`)
 - **Status**: active (started 2026-10-17, engine: pi coding agent)
 
-## Progress (iteration 5, 2026-10-17)
+## Progress (iteration 6, 2026-10-17)
 
 - [x] Item 1 — tab identity by tabId: `lib/tabIdentity.ts` + D9, snapshot
       v2 with v1 fallback; committed `c01a453` (compile, 54/54 unit,
@@ -15,17 +15,24 @@
       `nextFreePositionFor` layout helper; 20 unit tests in
       `tests/tabEvents.test.ts`; D10 ADR; committed `d8c8892`
       (compile, 74/74 unit, build, e2e 4/4 green)
-- [ ] Item 3 — multi-window: windowId on cards + badge/label
+- [x] Item 3 — multi-window: windowId on cards + badge/label:
+      `lib/windowBadge.ts` (pure `windowBadges` — W1..Wn by ascending
+      windowId, stable per-window hue, badges only with ≥2 known windows),
+      rendered as a pill on TabNode (top-right, per-window color) + window
+      label in InspectorPanel; WorkspaceCanvas computes badges from the
+      full tab list so labels stay stable under search filters; 8 unit
+      tests in `tests/windowBadge.test.ts`; D11 ADR; committed `5ced706`
+      (compile, 82/82 unit, build, e2e 4/4 green)
 - [ ] Item 4 — e2e extension: open tab → card appears; close → gone;
       navigate → position/cluster preserved
 
-Next slice: item 3 (multi-window badge). Suggested shape: `windowId`
-already flows through `normalizeTab`/WorkspaceTab; render a small
-window badge/label on TabNode (e.g. "W2" or the window's tab count),
-possibly with a per-window color; no grouping required. Then item 4:
-extend `tests/e2e/smoke.spec.ts` with open-tab → card appears, close →
-card gone (assert via chrome.tabs API + canvas DOM), navigate →
-position/cluster preserved.
+Next slice: item 4 (e2e live-sync spec). Extend `tests/e2e/smoke.spec.ts`
+(or a new spec file) with: open a tab → its card appears on the canvas
+(without reload, via live events); close it → card gone; navigate a tab
+→ position/cluster preserved (assert via chrome.tabs API + canvas DOM,
+and/or the persisted snapshot). Note: existing spec uses a shared
+persistent context across tests — keep new tabs uniquely-URL'd and
+clean up (close) tabs you open so later tests stay deterministic.
 
 ## M4 task statement
 

@@ -300,3 +300,39 @@ Notes:              Prior run (loop iter 4) had left uncommitted item-2
                     Remaining M4: item 3 multi-window badge, item 4 e2e
                     open/close/navigate.
 ```
+
+---
+
+```
+Task:               M4 iteration 4 (loop iter 6) — multi-window badges
+                    on tab cards (item 3)
+Model:              pi coding agent (fresh-context loop)
+Elapsed time:       ~20 min
+Tool calls:         ~35
+Build attempts:     1 (PASS on first run)
+Failed tests:       0 (82/82 pass, vitest; +8 new windowBadge tests;
+                    e2e 4/4)
+Self-recovered:     0
+Human intervention: 0
+Final commit:       5ced706 on feature/m4 (code + tests + D11 ADR);
+                   task files separate
+Status:             PASS
+Notes:              windowId already flowed through normalizeTab/
+                    WorkspaceTab, so item 3 was pure derivation +
+                    rendering: lib/windowBadge.ts (windowBadges — W1..Wn
+                    labels by ascending windowId, stable per-window hue,
+                    empty map with <2 known windows so single-window
+                    mode stays badge-free; windowHue), TabNode renders a
+                    top-right pill (per-window color, tooltip with raw
+                    window id), WorkspaceCanvas computes badges once per
+                    render from the FULL tab list (stable under search
+                    filters), InspectorPanel shows "Window: Wn" for the
+                    selected tab, .bw-tab-badge CSS. 8 unit tests in
+                    tests/windowBadge.test.ts (labeling order, hue
+                    stability/range, unknown windowId -1 handling,
+                    renumbering on window close). D11 ADR added.
+                    Check loop green: compile, 82/82 unit, wxt build
+                    (449.22 kB), e2e 4/4 in Chromium.
+                    Remaining M4: item 4 — e2e open tab → card appears,
+                    close → gone, navigate → position/cluster preserved.
+```

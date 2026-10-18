@@ -39,7 +39,11 @@ build, e2e 3/3 green at `60e9463`).
       hook `useTabEvents.ts` wired in App, store action `applyTabEvents`,
       `nextFreePositionFor` for overlap-free new cards; 20 unit tests in
       `tests/tabEvents.test.ts` (D10, `d8c8892`)
-- [ ] Multi-window behavior (M4) — windowId on cards, small badge/label
+- [x] Multi-window behavior (M4) — windowId already flowed through
+      normalizeTab/WorkspaceTab; derived W1..Wn badges (stable per-window
+      hue, shown only with ≥2 windows) in `lib/windowBadge.ts`, rendered on
+      TabNode + InspectorPanel; 8 unit tests in `tests/windowBadge.test.ts`
+      (D11, `5ced706`)
 - [ ] e2e: open tab → card appears; close → gone; navigate →
       position/cluster preserved (M4)
 
