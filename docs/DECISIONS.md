@@ -152,3 +152,26 @@ ADR-style. Newest last. Each entry: decision, rationale, consequences.
   candidates); after Enter, the live `onActivated` event keeps selection
   on the activated card (D10); cards are uniform-sized, so top-left
   positions give the same relative vectors as center math.
+
+## D13 — Clusters are draggable frames; member cards do not follow
+
+- **Decision**: cluster nodes are draggable (M5 item 2); a drag updates
+  `WorkspaceCluster.position` through the new store action
+  `moveCluster`, which persists via the existing snapshot schema (cluster
+  positions were already serialized in v2). Member cards do NOT follow a
+  moving cluster: their `position` is independent, and membership is by
+  explicit drop (M2), not geometric containment. Renaming a cluster is
+  inline — double-click the title (or press ✎) to edit in place;
+  Enter/blur commits, Escape cancels — replacing `window.prompt`.
+- **Rationale**: containment-following would require re-laying out every
+  member card on each drag frame (and deciding relative offsets), which
+  fights the free-form canvas and makes drops ambiguous; keeping cards
+  independent is simpler, predictable, and matches the drop-based
+  assignment model. Inline rename avoids a blocking dialog inside the
+  canvas and keeps focus on the node being edited.
+- **Consequences**: `moveCluster` is a pure store update (unit-tested,
+  including the no-follow guarantee); WorkspaceCanvas routes cluster-id
+  position changes to it (tab ids are numeric, cluster ids start with
+  `cluster-`); ClusterNode owns the inline-edit state; mousedown on the
+  title/input/buttons stops propagation so editing never starts a node
+  drag or canvas pan; persistence format unchanged.

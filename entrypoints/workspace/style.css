@@ -157,6 +157,23 @@ body {
   letter-spacing: 0.08em;
 }
 
+.bw-cluster-name {
+  cursor: pointer;
+}
+
+.bw-cluster-name-input {
+  flex: 1;
+  min-width: 0;
+  background: #1d212b;
+  border: 1px solid #4a5265;
+  border-radius: 4px;
+  color: #e8ecf3;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+}
+
 .bw-cluster-actions {
   display: flex;
   gap: 4px;

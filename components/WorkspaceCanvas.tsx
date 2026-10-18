@@ -30,6 +30,7 @@ export default function WorkspaceCanvas() {
   const selectedTabIds = useWorkspaceStore((s) => s.selectedTabIds);
   const clusters = useWorkspaceStore((s) => s.clusters);
   const moveTab = useWorkspaceStore((s) => s.moveTab);
+  const moveCluster = useWorkspaceStore((s) => s.moveCluster);
   const assignTab = useWorkspaceStore((s) => s.assignTab);
   const selectTab = useWorkspaceStore((s) => s.selectTab);
   const setViewport = useWorkspaceStore((s) => s.setViewport);
@@ -38,6 +39,8 @@ export default function WorkspaceCanvas() {
     // Multi-window badges (M4 item 3): derived from the full tab list so
     // every card knows its window even while a search filter hides others.
     const badges = windowBadges(allTabs);
+    // Clusters are draggable frames (M5 item 2, D13); member cards do not
+    // follow a moving cluster — assignment is by explicit drop, not containment.
     const clusterNodes: Node[] = clusters.map((c) => ({
       id: c.id,
       type: 'cluster',
@@ -45,7 +48,6 @@ export default function WorkspaceCanvas() {
       data: { cluster: c },
       style: { width: c.size.width, height: c.size.height },
       selectable: false,
-      draggable: false,
     }));
     const tabNodes: Node[] = tabs.map((t) => ({
       id: String(t.tabId),
@@ -59,8 +61,13 @@ export default function WorkspaceCanvas() {
   const onNodesChange = (changes: NodeChange[]) => {
     for (const change of changes) {
       if (change.type === 'position' && change.position && change.id) {
-        const tabId = Number(change.id);
-        if (!Number.isNaN(tabId)) moveTab(tabId, change.position);
+        // Cluster ids are strings ('cluster-...'); tab ids are numeric.
+        if (change.id.startsWith('cluster-')) {
+          moveCluster(change.id, change.position);
+        } else {
+          const tabId = Number(change.id);
+          if (!Number.isNaN(tabId)) moveTab(tabId, change.position);
+        }
       }
     }
   };

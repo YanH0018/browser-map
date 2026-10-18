@@ -30,6 +30,8 @@ export interface WorkspaceState {
   /** Fold a debounced batch of live chrome.tabs events into the store (M4 item 2). */
   applyTabEvents: (events: readonly TabEvent[]) => void;
   moveTab: (tabId: number, position: Position) => void;
+  /** Move a cluster; member cards do NOT follow (D13). */
+  moveCluster: (clusterId: string, position: Position) => void;
   createCluster: (name: string, position: Position) => WorkspaceCluster;
   renameCluster: (clusterId: string, name: string) => void;
   deleteCluster: (clusterId: string) => void;
@@ -62,6 +64,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   moveTab: (tabId, position) =>
     set((s) => ({
       tabs: s.tabs.map((t) => (t.tabId === tabId ? { ...t, position } : t)),
+    })),
+
+  // Moving a cluster only moves the frame itself; member cards keep their
+  // positions (D13) — assignment is by explicit drop, not containment.
+  moveCluster: (clusterId, position) =>
+    set((s) => ({
+      clusters: s.clusters.map((c) => (c.id === clusterId ? { ...c, position } : c)),
     })),
 
   createCluster: (name, position) => {
