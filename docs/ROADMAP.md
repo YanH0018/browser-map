@@ -14,7 +14,7 @@
   improved restoration; better tab synchronization.
 - [x] **M4 — Robust browser synchronization**: creation/removal/URL &
   title updates/activation state; multi-window behavior.
-- [ ] **M5 — Interaction quality**: keyboard navigation; visual polish;
+- [x] **M5 — Interaction quality**: keyboard navigation; visual polish; (pi engine, 5 iterations, e7328eb)
   performance with many tabs; accessibility; cluster interaction.
 - [ ] **M6 — Automatic layout**: algorithms that reorganize tabs.
 - [ ] **M7 — Semantic clustering**: embeddings + local semantic grouping.
