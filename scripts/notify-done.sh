@@ -34,7 +34,10 @@ GITLOG=$(git log --oneline -8)
 STATUS=$(git status --short | head -10)
 METRICS=$(cat .agent/runs/loop-*.jsonl 2>/dev/null | tail -10)
 LASTLOG=$(ls -t .agent/runs/2*-iter*.log 2>/dev/null | head -1)
-DONE=$(grep -l "TASK DONE" .agent/runs/2*-iter*.log 2>/dev/null | tail -1)
+DONE=""
+for f in .agent/runs/2*-iter*.log; do
+  [ -f "$f" ] && scripts/task-done.sh "$f" && DONE="$f"
+done
 VERDICT=$([ -n "$DONE" ] && echo "TASK DONE (in $DONE)" || echo "NO TASK DONE — check metrics")
 
 BODY="M5 agent loop finished on branch $BRANCH (engine: pi).

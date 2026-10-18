@@ -118,7 +118,9 @@ Loop rules:
   secs=$(( $(date +%s) - start ))
   metric "$i" "$outcome" "$secs"
 
-  if grep -q "TASK DONE" "$LOG" 2>/dev/null; then
+  # Assistant-only TASK DONE check (JSON logs echo the prompt, which
+  # itself mentions TASK DONE — naive grep self-triggers).
+  if scripts/task-done.sh "$LOG"; then
     echo "✅ TASK DONE after $i iteration(s), ${secs}s on the last one"
     metric "$i" "done" "$secs"
     notify "task complete after $i iteration(s)"
