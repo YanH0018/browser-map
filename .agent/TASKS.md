@@ -47,9 +47,19 @@ build, e2e 3/3 green at `60e9463`).
       test `tests/renderCount.test.tsx` (happy-dom, 150 cards + 2
       clusters): move/select/rename/add re-renders exactly the affected
       node(s) (D14, `4d2f857`)
-- [ ] Accessibility basics (M5) — aria-labels on all interactive
-      elements, role="button"/tab order on cards, honor
-      prefers-reduced-motion for canvas transitions
+- [x] Accessibility basics (M5) — cards are real keyboard controls:
+      role="button" + tabIndex=0 (tab order), aria-label
+      (title/domain/window) and aria-pressed; focus<->selection sync both
+      ways so the D12 spatial-nav reducer is reused unchanged; Space
+      activates a focused card (Enter still works from anywhere); aria-labels
+      on every other interactive element (toolbar, snapshots, inspector);
+      prefers-reduced-motion honored via CSS media query (all
+      transitions/animations off, incl. XYFlow's) + fitView duration 0 via
+      `lib/reducedMotion.ts`; tests: reducedMotion (5) +
+      keyboardNavHook (6, real canvas+hook harness) (D15, `e5f35ef`)
+
+M5 complete: all four items verified (compile, 112/112 unit, build,
+e2e 6/6 at `e5f35ef`). Branch `feature/m5` awaits merge (human).
 
 ## Done (M4 — Robust browser synchronization)
 

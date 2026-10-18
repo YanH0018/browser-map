@@ -1,7 +1,8 @@
 # CURRENT_TASK.md
 
 - **Task**: M5 — Interaction quality (branch `feature/m5`)
-- **Status**: active (started 2026-10-17, engine: pi coding agent)
+- **Status**: done (started 2026-10-17, engine: pi coding agent; all four
+  items complete and verified at `e5f35ef`; branch awaits human merge)
 
 ## Progress
 
@@ -13,8 +14,13 @@
       callbacks; render-count test `tests/renderCount.test.tsx`
       (happy-dom, 150 cards + 2 clusters) proves move/select/rename/add
       re-renders exactly the affected node(s); dev dep happy-dom
-- [ ] Item 4 — accessibility basics (aria-labels, roles/tab order on
-      cards, prefers-reduced-motion)
+- [x] Item 4 — accessibility basics (D15): `e5f35ef` — cards are real
+      keyboard controls (role="button", tabIndex=0, aria-label,
+      aria-pressed; focus<->selection sync both ways); Space activates a
+      focused card; aria-labels on all remaining interactive elements;
+      prefers-reduced-motion via CSS media query + fitView duration 0
+      (`lib/reducedMotion.ts`); tests: reducedMotion (5) +
+      keyboardNavHook (6)
 
 Note: e2e `live sync` drag flaked once during item 2 (passed on rerun,
 6/6 green at `5f31b37`); see TASKS.md known issues.

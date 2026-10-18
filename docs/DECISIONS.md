@@ -206,3 +206,41 @@ ADR-style. Newest last. Each entry: decision, rationale, consequences.
   The render-count test stubs `ResizeObserver` so XYFlow never measures —
   it asserts memoization, not layout. Dev dependency added: `happy-dom`
   (test environment only).
+
+## D15 — Accessibility basics: cards as real keyboard controls + reduced motion
+
+- **Decision**: Tab cards are first-class keyboard controls: `role="button"`,
+  `tabIndex=0` (DOM order = tab order: clusters first, then tabs in store
+  order), a descriptive `aria-label` (`Tab card: <title> (<domain>)[, window
+  Wn]`) and `aria-pressed` mirroring selection. Focus and selection are kept
+  in sync both ways: focusing a card selects it (`onFocus` → `selectTab`, so
+  the global Enter path in `useKeyboardNav` works right after tabbing to a
+  card), and selecting a card moves DOM focus onto it (`useEffect` on
+  `selected`, `preventScroll`). Space activates the focused card (native
+  button semantics; Enter already worked from anywhere). Every other
+  interactive element carries an `aria-label` (toolbar search + buttons,
+  snapshot restore/delete, inspector activate/close, cluster rename/delete/
+  input — the latter from M5 item 2). `prefers-reduced-motion: reduce` is
+  honored two ways: a CSS media query disables all transitions/animations in
+  the app (including XYFlow's own), and `lib/reducedMotion.ts`
+  (`prefersReducedMotion()`, safe in non-browser envs) makes the canvas pass
+  `fitViewOptions={{ duration: 0 }}` so the initial fit is instant.
+- **Rationale**: cards are `div`s inside React Flow, so without explicit
+  roles they were invisible to assistive tech and unreachable by Tab. Making
+  focus imply selection (rather than maintaining a separate focus state)
+  reuses the existing spatial-nearest navigation reducer (D12) unchanged —
+  arrow keys, Enter and Escape all keep working with zero new state. A
+  change listener for `prefers-reduced-motion` is out of scope: the value is
+  read at render time, which covers the practical case (OS setting chosen
+  before opening the workspace).
+- **Consequences**: tabbing into the canvas lands on cluster controls, then
+  cards in store order; screen readers announce each card as a pressed/
+  unpressed button with title, domain and window. Reduced-motion users get
+  no pan/zoom animation on load and no CSS transitions anywhere in the app.
+  Verified by `tests/reducedMotion.test.ts` (5 tests: non-browser, missing
+  matchMedia, reduce on/off, throwing matchMedia) and
+  `tests/keyboardNavHook.test.tsx` (6 tests: roles/tab order/labels,
+  spatial arrows through the real hook, Enter activation via mocked adapter,
+  focus→select + Space-on-card activation, selection→focus, Escape, and no
+  hijacking while a real form control has focus). Axe-style deep audit
+  remains out of scope per the M5 task statement.

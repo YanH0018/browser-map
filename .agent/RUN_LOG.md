@@ -454,3 +454,53 @@ Notes:              Item 3 complete (D14). React.memo alone was not
                     on all interactive elements, role/tab order on cards,
                     prefers-reduced-motion).
 ```
+
+---
+
+```
+Task:               M5 iteration 4 — accessibility basics (item 4)
+Model:              pi coding agent, qwen3.8-27b-mlx (LM Studio)
+Elapsed time:       ~20 min
+Tool calls:         ~35
+Build attempts:     1 (compile FAIL first run — type errors in the new test
+                    files left by an interrupted prior run; fixed, then all
+                    green)
+Failed tests:       0 (112/112 pass; the two new test files had TS errors,
+                    not runtime failures)
+Self-recovered:     1 (recovered uncommitted work from an interrupted run:
+                    fixed noUncheckedIndexedAccess destructuring in
+                    keyboardNavHook.test.tsx via a cardPair() helper and the
+                    globalThis.window typing in reducedMotion.test.ts)
+Human intervention: 0
+Final commit:       e5f35ef on feature/m5 (code + tests); task files + D15
+                   separate commit
+Status:             PASS
+Notes:              Item 4 complete (D15) — M5 is now fully done. Cards are
+                    real keyboard controls: role="button" + tabIndex=0 (tab
+                    order = DOM order), aria-label "Tab card: <title>
+                    (<domain>)[, window Wn]", aria-pressed mirrors selection.
+                    Focus<->selection sync both ways: onFocus -> selectTab,
+                    and a useEffect moves DOM focus onto the selected card
+                    (preventScroll) — this reuses the D12 spatial-nav reducer
+                    unchanged, so arrows/Enter/Escape keep working. Space
+                    activates a focused card (native button semantics; Enter
+                    still works from anywhere); real form controls remain
+                    un-hijacked via isInteractiveTarget. aria-labels added to
+                    every remaining interactive element (toolbar search +
+                    buttons, snapshot restore/delete, inspector activate/
+                    close; cluster rename/delete/input were labeled in item 2).
+                    prefers-reduced-motion: CSS media query disables all
+                    transitions/animations (incl. XYFlow's own), and
+                    lib/reducedMotion.ts (safe in non-browser envs) makes the
+                    canvas pass fitViewOptions { duration: 0 }. New tests:
+                    reducedMotion.test.ts (5) and keyboardNavHook.test.tsx
+                    (6, happy-dom harness mounting the real WorkspaceCanvas +
+                    useKeyboardNav with a mocked browser adapter: roles/labels,
+                    spatial arrows through the hook, Enter activation, focus->
+                    select + Space-on-card, selection->focus, Escape, no
+                    hijacking on form controls). Full loop green: compile,
+                    112/112 unit (was 101), wxt build (453.13 kB), e2e 6/6 in
+                    headed Chromium. Remaining: none for M5 — branch
+                    feature/m5 awaits human merge; next milestone per
+                    ROADMAP is M6 (automatic layout algorithms).
+```
