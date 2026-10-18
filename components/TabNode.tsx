@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import type { WorkspaceTab } from '../lib/types';
 import type { WindowBadge } from '../lib/windowBadge';
@@ -9,8 +10,17 @@ function hueFrom(str: string): number {
   return h;
 }
 
-/** Visual card for one browser tab. */
-export default function TabNode({ data }: NodeProps) {
+/** Test-only render counter (M5 item 3 perf test); reset between tests. */
+export const tabNodeRenderCount = { count: 0 };
+
+/**
+ * Visual card for one browser tab. Memoized (M5 item 3): moving or
+ * selecting another card must not re-render this one. The canvas keeps
+ * the per-node `data` object referentially stable for unchanged tabs so
+ * this memo actually holds.
+ */
+export default memo(function TabNode({ data }: NodeProps) {
+  tabNodeRenderCount.count += 1;
   const { tab, badge, selected } = data as {
     tab: WorkspaceTab;
     badge?: WindowBadge;
@@ -43,4 +53,4 @@ export default function TabNode({ data }: NodeProps) {
       <div className="bw-tab-domain">{tab.domain}</div>
     </div>
   );
-}
+});

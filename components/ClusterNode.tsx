@@ -1,10 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import { useWorkspaceStore } from '../stores/workspaceStore';
 import type { WorkspaceCluster } from '../lib/types';
 
-/** Named spatial grouping drawn behind its member tab cards. */
-export default function ClusterNode({ data }: NodeProps) {
+/** Test-only render counter (M5 item 3 perf test); reset between tests. */
+export const clusterNodeRenderCount = { count: 0 };
+
+/** Named spatial grouping drawn behind its member tab cards. Memoized (M5 item 3). */
+export default memo(function ClusterNode({ data }: NodeProps) {
+  clusterNodeRenderCount.count += 1;
   const cluster = (data as { cluster: WorkspaceCluster }).cluster;
   const renameCluster = useWorkspaceStore((s) => s.renameCluster);
   const deleteCluster = useWorkspaceStore((s) => s.deleteCluster);
@@ -95,4 +99,4 @@ export default function ClusterNode({ data }: NodeProps) {
       </span>
     </div>
   );
-}
+});
