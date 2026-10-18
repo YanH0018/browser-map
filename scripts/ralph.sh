@@ -62,6 +62,19 @@ if ! curl -sf -m 5 "$OPENAI_BASE_URL/models" | grep -q "$OPENAI_MODEL"; then
   echo "  fix: lms server start && lms load $OPENAI_MODEL -c 65536 --ttl 3600"
   exit 1
 fi
+
+# Context guard: after a TTL-expiry unload, LM Studio's JIT reload uses its
+# default context (8K), not our 64K — an agent on an 8K brain loops
+# brainlessly (burned M5 for 4 iterations). Verify and force-reload.
+LMS_CLI="$HOME/.lmstudio/bin/lms"
+if [ -x "$LMS_CLI" ]; then
+  CTX=$("$LMS_CLI" ps 2>/dev/null | awk -v m="$OPENAI_MODEL" '$1==m {for(i=1;i<=NF;i++) if($i=="GB"){print $(i+1); exit}}')
+  if [ -z "${CTX:-}" ] || [ "$CTX" -lt 32768 ] 2>/dev/null; then
+    echo "⚠ live context is ${CTX:-unknown} (< 32768) — reloading $OPENAI_MODEL at 65536"
+    "$LMS_CLI" unload "$OPENAI_MODEL" >/dev/null 2>&1 || true
+    "$LMS_CLI" load "$OPENAI_MODEL" -c 65536 --ttl 3600 >/dev/null 2>&1 || true
+  fi
+fi
 if [ -n "$(git status --porcelain)" ]; then
   echo "✗ working tree is dirty — commit or stash first"; git status --short; exit 1
 fi
