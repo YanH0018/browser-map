@@ -27,6 +27,36 @@ Format: `[ ] task (milestone)` — mark `[x]` with the commit hash when done.
 M2 complete: all four items verified end-to-end (compile, 32/32 unit,
 build, e2e 3/3 green at `60e9463`).
 
+## Now (M4 — Robust browser synchronization)
+
+- [x] Tab identity by tabId, not URL (M4) — `lib/tabIdentity.ts`
+      (`resolveTabState`, tabId-first + URL fallback for v1/stale ids),
+      shared by snapshot restore and live resync; snapshot version 2,
+      v1 still loads (D9, `c01a453`); 12 unit tests in
+      `tests/tabIdentity.test.ts`
+- [x] Live chrome.tabs events → store (M4) — pure reducers in
+      `lib/tabEvents.ts` (`applyTabEvent(s)`), debounced (150 ms) listener
+      hook `useTabEvents.ts` wired in App, store action `applyTabEvents`,
+      `nextFreePositionFor` for overlap-free new cards; 20 unit tests in
+      `tests/tabEvents.test.ts` (D10, `d8c8892`)
+- [x] Multi-window behavior (M4) — windowId already flowed through
+      normalizeTab/WorkspaceTab; derived W1..Wn badges (stable per-window
+      hue, shown only with ≥2 windows) in `lib/windowBadge.ts`, rendered on
+      TabNode + InspectorPanel; 8 unit tests in `tests/windowBadge.test.ts`
+      (D11, `5ced706`)
+- [x] e2e: open tab → card appears; close → gone; navigate →
+      position/cluster preserved (M4) — `tests/e2e/smoke.spec.ts`
+      "live sync" test: opens a uniquely-URL'd tab and asserts its card
+      appears without reload (live events), closes it → card gone,
+      drags a second tab onto a fresh cluster, navigates that same real
+      tab in place and asserts (canvas DOM + chrome.tabs API + persisted
+      v2 snapshot) that the card text updates in place, stays at the same
+      screen position, keeps its tabId and cluster assignment; cleans up
+      its tabs (`830603e`)
+
+M4 complete: all four items verified (compile, 82/82 unit, build,
+e2e 5/5 at `830603e`). Branch `feature/m4` awaits merge (human).
+
 ## Done (M3 — Workspace functionality)
 
 - [x] Search box filters canvas live (M3) — store-driven `searchQuery`
@@ -44,8 +74,6 @@ e2e 4/4 at `a880f4a`).
 
 ## Later
 
-- [ ] Tab create/remove/title/URL sync hardening (M4)
-- [ ] Multi-window behavior (M4)
 - [ ] Real Playwright e2e suite per `tests/e2e/README.md` (M4)
 - [ ] Visual test loop: screenshot → vision-model inspection (M5)
 - [ ] Keyboard navigation + accessibility pass (M5)

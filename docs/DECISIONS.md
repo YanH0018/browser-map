@@ -68,3 +68,58 @@ ADR-style. Newest last. Each entry: decision, rationale, consequences.
 - **Rationale**: MV3 service workers are killed arbitrarily; stateless
   restart is free.
 - **Consequences**: workspace page owns tab-state caching.
+
+## D9 — Tab identity: tabId-first with URL fallback (supersedes D6)
+
+- **Decision**: persisted tab state is keyed by `tabId`; URL/title are
+  display data plus a fallback for entries whose tabId is unknown (v1
+  snapshots) or stale (tab closed, browser restarted). Snapshot version
+  bumped to 2; v1 snapshots still load and migrate on next save.
+- **Rationale**: URL-keyed matching (D6) made a navigating tab lose its
+  position and cluster on every resync — the canvas could not be a live
+  mirror of the browser. tabId is stable for the whole browser session,
+  which covers all live-sync cases; the URL fallback covers restarts and
+  legacy snapshots.
+- **Consequences**: matching logic centralized in `lib/tabIdentity.ts`
+  (`resolveTabState`, shared by snapshot restore and live resync);
+  duplicate-URL tabs no longer alias one arrangement (each persisted
+  entry is consumed at most once); `PersistedTabMetadata.tabId` is
+  optional so v1 data stays valid.
+
+## D10 — Live chrome.tabs events via pure reducers + debounce
+
+- **Decision**: the workspace page subscribes directly to
+  `tabs.onCreated/onRemoved/onUpdated/onActivated` and folds debounced
+  (150 ms) event batches into the store through pure reducers
+  (`lib/tabEvents.ts`, `applyTabEvent(s)`). The background's
+  `bw:tabs-changed` full resync (D8) remains as a self-healing
+  fallback.
+- **Rationale**: the stateless background (D8) cannot reliably hold
+  per-tab state; pure reducers keep event handling unit-testable without
+  mocking the browser API, and debouncing absorbs bursts (restoring a
+  closed window fires many events at once).
+- **Consequences**: store gains `applyTabEvents`; reducers are
+  idempotent (duplicate `created` is a no-op, unknown tabIds are no-ops,
+  so the extension's own pages never become cards); `onActivated`
+  follows the real active tab and clears selection when that tab has no
+  card; `nextFreePositionFor` (lib/layout.ts) places fresh cards at the
+  next free cascade slot so they never overlap; event-driven changes are
+  persisted by the existing debounced snapshot save.
+
+## D11 — Multi-window: derived W1..Wn badges, no grouping yet
+
+- **Decision**: tabs from every browser window appear on the canvas;
+  each card shows a small badge (W1, W2, …) with a stable per-window
+  hue identifying its window. Badges are *derived* from the current tab
+  list (`lib/windowBadge.ts`, labels by ascending windowId) and are only
+  shown when two or more known windows exist. No per-window grouping.
+- **Rationale**: the M4 task asks for a small badge/label, not
+  grouping; deriving (instead of persisting) means no snapshot
+  migration and labels stay consistent as windows open/close; hiding
+  badges in single-window mode avoids pure noise.
+- **Consequences**: `windowBadges` is a pure, unit-tested helper;
+  TabNode renders the badge from node data; WorkspaceCanvas computes
+  badges once per render from the *full* tab list so labels stay stable
+  while a search filter hides cards; InspectorPanel shows the window
+  label for the selected tab; persistence format unchanged (windowId was
+  already on WorkspaceTab via normalizeTab).

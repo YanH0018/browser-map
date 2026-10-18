@@ -1,9 +1,10 @@
 /**
  * Core data model (see docs/ARCHITECTURE.md).
  *
- * Browser tab IDs are ephemeral: they change between browser sessions.
- * Persistent workspace state must therefore key off more stable metadata
- * (URL + title) rather than tabId alone.
+ * Tab identity is tabId-first (D9): persisted state carries the live
+ * tabId so a navigating tab keeps its position and cluster. URL is
+ * display data plus a fallback for v1 snapshots (no tabId) and stale
+ * ids after browser restarts.
  */
 
 export interface Position {
@@ -50,6 +51,8 @@ export interface WorkspaceCluster {
 
 /** Session-stable subset of a tab, persisted across browser restarts. */
 export interface PersistedTabMetadata {
+  /** Live tab id when known; absent in v1 snapshots (URL fallback). */
+  tabId?: number;
   url: string;
   title: string;
   position: Position;
@@ -78,6 +81,10 @@ export interface NamedSnapshot {
   viewport: Viewport;
 }
 
-export const SNAPSHOT_VERSION = 1;
+/** v2 (M4): persisted tabs carry tabId; matching is tabId-first. */
+export const SNAPSHOT_VERSION = 2;
+
+/** Snapshot versions this build can load (v1 migrates via URL fallback). */
+export const ACCEPTED_SNAPSHOT_VERSIONS: readonly number[] = [1, SNAPSHOT_VERSION];
 
 export const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, zoom: 1 };

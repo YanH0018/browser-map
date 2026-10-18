@@ -15,7 +15,7 @@ const tab = (over: Partial<WorkspaceTab>): WorkspaceTab => ({
 });
 
 describe('createNamedSnapshot', () => {
-  it('captures canvas state as persisted metadata (no ephemeral tabId)', () => {
+  it('captures canvas state as persisted metadata (tabId-keyed, D9)', () => {
     const snap = createNamedSnapshot(
       'work',
       [tab({ tabId: 7, clusterId: 'c1' })],
@@ -24,8 +24,7 @@ describe('createNamedSnapshot', () => {
     );
     expect(snap.name).toBe('work');
     expect(typeof snap.id).toBe('string');
-    expect(snap.tabs[0]).toMatchObject({ url: 'https://a.example.com', clusterId: 'c1' });
-    expect(snap.tabs[0]).not.toHaveProperty('tabId');
+    expect(snap.tabs[0]).toMatchObject({ url: 'https://a.example.com', clusterId: 'c1', tabId: 7 });
     expect(snap.clusters).toHaveLength(1);
     expect(snap.viewport).toEqual({ x: 1, y: 2, zoom: 1.5 });
     expect(typeof snap.createdAt).toBe('number');

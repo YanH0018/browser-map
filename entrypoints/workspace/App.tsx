@@ -13,6 +13,7 @@ import {
   saveSnapshot,
 } from '../../lib/workspaceStorage';
 import { serializeWorkspace } from '../../lib/persistence';
+import { useTabEvents } from './useTabEvents';
 
 /**
  * Workspace is a full extension page (not a toolbar popup) — see
@@ -22,6 +23,9 @@ import { serializeWorkspace } from '../../lib/persistence';
 export default function App() {
   const setTabs = useWorkspaceStore((s) => s.setTabs);
   const setViewport = useWorkspaceStore((s) => s.setViewport);
+
+  // Live chrome.tabs events → store (debounced batches, M4 item 2).
+  useTabEvents();
 
   // Initial load: persisted layout merged onto live tabs, plus any
   // user-named snapshots.

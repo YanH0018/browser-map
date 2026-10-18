@@ -221,3 +221,159 @@ Notes:              Iteration 1 (same loop) had left uncommitted M3 item-2
                     item 3 card-click activate (3213892, e2e).
                     Next backlog: M4 — tab sync hardening, multi-window.
 ```
+
+---
+
+```
+Task:               M4 iteration 2 — tab identity by tabId (item 1),
+                    verify + commit iteration-1 work
+Model:              pi coding agent (fresh-context loop)
+Elapsed time:       ~12 min
+Tool calls:         ~30
+Build attempts:     2 (1st compile: 3 TS errors — tuple-typed
+                   ACCEPTED_SNAPSHOT_VERSIONS.includes + test fixture
+                   missing optional clusterId; fixed, 2nd PASS)
+Failed tests:       3 (D6-era assertions "no ephemeral tabId" in
+                   namedSnapshots/persistence/workspaceStore tests —
+                   updated to D9 tabId-keyed expectations)
+Self-recovered:     2 (type errors + stale test assertions, same run)
+Human intervention: 0
+Final commit:       c01a453 on feature/m4 (code + tests + docs);
+                   task files separate
+Status:             PASS
+Notes:              Iteration 1 had left uncommitted M4 item-1 work on
+                   feature/m4: lib/tabIdentity.ts (sanitizePersistedTab(s)
+                   + resolveTabState — tabId-first matching, URL fallback
+                   only for v1/stale entries, each persisted entry
+                   consumed at most once), PersistedTabMetadata.tabId?,
+                   SNAPSHOT_VERSION 2 + ACCEPTED_SNAPSHOT_VERSIONS [1,2],
+                   browserAdapter.queryWorkspaceTabs and
+                   persistence.applySnapshotToTabs both routed through
+                   resolveTabState, namedSnapshots sanitize on load,
+                   D9 ADR + ARCHITECTURE identity-rule update. This
+                   iteration fixed the 3 compile errors, updated the 3
+                   D6-era tests to assert tabId IS persisted (D9), and
+                   verified the full loop: compile, 54/54 unit (12 new
+                   tabIdentity tests), wxt build (446.32 kB), e2e 4/4 in
+                   Chromium — including the previously flaky reload-restore
+                   test, now green on a cold load. Remaining M4: item 2
+                   live chrome.tabs event reducers + debounce, item 3
+                   multi-window badge, item 4 e2e open/close/navigate.
+```
+
+---
+
+```
+Task:               M4 iteration 3 (loop iter 5) — live chrome.tabs
+                    event reducers + debounce (item 2)
+Model:              pi coding agent (fresh-context loop)
+Elapsed time:       ~15 min
+Tool calls:         ~30
+Build attempts:     2 (1st compile: 27 TS errors in prior run's
+                   uncommitted work — noUncheckedIndexedAccess in
+                   lib/tabEvents.ts + tests, wrong field name favIconUrl;
+                   fixed, 2nd PASS)
+Failed tests:       0 (74/74 pass after fixes; +20 new tabEvents tests;
+                    e2e 4/4)
+Self-recovered:     1 (compile errors, same run)
+Human intervention: 0
+Final commit:       d8c8892 on feature/m4 (code + tests + D10 ADR);
+                   task files separate
+Status:             PASS
+Notes:              Prior run (loop iter 4) had left uncommitted item-2
+                    work on feature/m4: lib/tabEvents.ts (pure reducers
+                    applyTabEvent/applyTabEvents over a TabEvent union —
+                    created adds at nextFreePositionFor, removed drops
+                    card + selection but not clusters, updated changes
+                    text in place preserving position/cluster per D9,
+                    activated follows the real active tab and clears
+                    selection for card-less tabs; all idempotent),
+                    useTabEvents.ts (150 ms debounced browser.tabs.on*
+                    listeners, own-extension tabs filtered at the
+                    boundary, flush-on-unmount), store action
+                    applyTabEvents, nextFreePositionFor in lib/layout.ts,
+                    20 tests. This iteration fixed the compile errors
+                    (index-access narrowing in applyUpdated + test,
+                    favIconUrl→faviconUrl field rename), added the D10
+                    ADR, and verified the full loop: compile, 74/74 unit,
+                    wxt build (448.46 kB), e2e 4/4 in Chromium.
+                    Remaining M4: item 3 multi-window badge, item 4 e2e
+                    open/close/navigate.
+```
+
+---
+
+```
+Task:               M4 iteration 4 (loop iter 6) — multi-window badges
+                    on tab cards (item 3)
+Model:              pi coding agent (fresh-context loop)
+Elapsed time:       ~20 min
+Tool calls:         ~35
+Build attempts:     1 (PASS on first run)
+Failed tests:       0 (82/82 pass, vitest; +8 new windowBadge tests;
+                    e2e 4/4)
+Self-recovered:     0
+Human intervention: 0
+Final commit:       5ced706 on feature/m4 (code + tests + D11 ADR);
+                   task files separate
+Status:             PASS
+Notes:              windowId already flowed through normalizeTab/
+                    WorkspaceTab, so item 3 was pure derivation +
+                    rendering: lib/windowBadge.ts (windowBadges — W1..Wn
+                    labels by ascending windowId, stable per-window hue,
+                    empty map with <2 known windows so single-window
+                    mode stays badge-free; windowHue), TabNode renders a
+                    top-right pill (per-window color, tooltip with raw
+                    window id), WorkspaceCanvas computes badges once per
+                    render from the FULL tab list (stable under search
+                    filters), InspectorPanel shows "Window: Wn" for the
+                    selected tab, .bw-tab-badge CSS. 8 unit tests in
+                    tests/windowBadge.test.ts (labeling order, hue
+                    stability/range, unknown windowId -1 handling,
+                    renumbering on window close). D11 ADR added.
+                    Check loop green: compile, 82/82 unit, wxt build
+                    (449.22 kB), e2e 4/4 in Chromium.
+                    Remaining M4: item 4 — e2e open tab → card appears,
+                    close → gone, navigate → position/cluster preserved.
+```
+
+---
+
+```
+Task:               M4 iteration 5 (loop iter 7) — e2e live-sync spec
+                    (item 4): open → card appears, close → gone,
+                    navigate → position/cluster preserved
+Model:              pi coding agent (fresh-context loop)
+Elapsed time:       ~25 min
+Tool calls:         ~30
+Build attempts:     1 (PASS on first run)
+Failed tests:       0 (82/82 unit, vitest; e2e 5/5 — new "live sync"
+                    test passed on first run)
+Self-recovered:     0
+Human intervention: 0
+Final commit:       830603e on feature/m4 (test only); task files
+                    separate
+Status:             PASS — M4 COMPLETE (all 4 items verified)
+Notes:              No product code changes needed; the live pipeline
+                    from items 1-3 (tabId identity, debounced event
+                    reducers, useTabEvents hook) already behaved
+                    correctly in a real browser. New e2e test in
+                    tests/e2e/smoke.spec.ts reuses the shared persistent
+                    context: opens a workspace page (hosts the listeners),
+                    opens a uniquely-URL'd data: tab → card appears via
+                    onCreated/onUpdated without reload; closes it → card
+                    gone (onRemoved); opens a second tab, drags its card
+                    onto a fresh "LiveSync" cluster (page.bringToFront()
+                    first so mouse events reach the workspace tab), then
+                    navigates that same real tab in place and asserts:
+                    card text updates in place at the same screen position
+                    (boundingBox ±1px), chrome.tabs.query shows the SAME
+                    tabId with the new URL, and the persisted v2 snapshot
+                    keeps position + clusterId for that tabId. Test closes
+                    its own tabs so later runs stay deterministic;
+                    SnapshotTab test interface gained optional tabId.
+                    Check loop green: compile, 82/82 unit, wxt build
+                    (449.22 kB), e2e 5/5 in headed Chromium.
+                    M4 done; feature/m4 awaits merge (human). Next:
+                    M5/M6 per .agent/TASKS.md "Later".
+```

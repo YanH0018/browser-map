@@ -96,8 +96,7 @@ describe('workspaceStore', () => {
       const snap = s.namedSnapshots[0]!;
       expect(snap.name).toBe('work');
       expect(typeof snap.id).toBe('string');
-      expect(snap.tabs[0]).toMatchObject({ url: 'https://a.example.com', position: { x: 40, y: 50 } });
-      expect(snap.tabs[0]).not.toHaveProperty('tabId');
+      expect(snap.tabs[0]).toMatchObject({ url: 'https://a.example.com', position: { x: 40, y: 50 }, tabId: 1 });
       expect(snap.viewport).toEqual({ x: 7, y: 8, zoom: 1.2 });
       expect(typeof snap.createdAt).toBe('number');
     });

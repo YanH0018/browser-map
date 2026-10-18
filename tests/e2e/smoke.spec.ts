@@ -16,6 +16,8 @@ interface SnapshotTab {
   title: string;
   position: { x: number; y: number };
   clusterId?: string;
+  /** v2 snapshots key tabs by real browser tab id (D9). */
+  tabId?: number;
 }
 
 interface SnapshotCluster {
@@ -239,4 +241,126 @@ test('card click selects tab; Activate tab focuses the real browser tab', async 
   expect(urls).not.toContain(deltaUrl);
 
   await page.screenshot({ path: 'test-results/m1-card-activate.png', fullPage: true });
+});
+
+/**
+ * M4 acceptance (item 4): the canvas is a live mirror of the browser.
+ * Open a tab → its card appears without any reload; close it → the card
+ * disappears; navigate a tab in place → position and cluster survive
+ * (tabId identity, D9/D10). Asserted via the canvas DOM, the chrome.tabs
+ * API and the persisted snapshot.
+ */
+test('live sync: open → card appears; close → gone; navigate keeps position/cluster', async () => {
+  let worker = context.serviceWorkers()[0];
+  if (!worker) worker = await context.waitForEvent('serviceworker');
+  const extensionId = new URL(worker.url()).host;
+
+  // The workspace page hosts the live chrome.tabs listeners (useTabEvents).
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/workspace.html`);
+  await expect(page.locator('.bw-canvas')).toBeVisible();
+  // Let the initial tab sync and any pending debounced saves settle.
+  await page.waitForTimeout(700);
+
+  // Look up a real tab's id by URL via the extension tabs API.
+  const findTabIdByUrl = (url: string) =>
+    page.evaluate(
+      (targetUrl: string) =>
+        new Promise<number>((resolve) => {
+          const chromeApi = (window as unknown as { chrome: any }).chrome;
+          chromeApi.tabs.query(
+            {},
+            (tabs: Array<{ id?: number; url?: string }>) => {
+              resolve(tabs.find((t) => t.url === targetUrl)?.id ?? -1);
+            },
+          );
+        }),
+      url,
+    );
+
+  // --- Open: a new tab's card appears on the canvas without any reload.
+  const liveUrl = 'data:text/html,<title>LiveTab</title>';
+  const livePage = await context.newPage();
+  await livePage.goto(liveUrl);
+
+  const liveCard = page.locator('.bw-tab-card', { hasText: 'LiveTab' });
+  await expect(liveCard).toBeVisible(); // via chrome.tabs.onCreated/onUpdated
+
+  // --- Close: the card disappears (chrome.tabs.onRemoved).
+  await livePage.close();
+  await expect(liveCard).toHaveCount(0);
+
+  // --- Navigate: position + cluster survive (tabId identity, D9).
+  const navUrlA = 'data:text/html,<title>NavOne</title>';
+  const navUrlB = 'data:text/html,<title>NavTwo</title>';
+  const navPage = await context.newPage();
+  await navPage.goto(navUrlA);
+
+  const navCard = page.locator('.bw-tab-card', { hasText: 'NavOne' });
+  await expect(navCard).toBeVisible();
+
+  // Put the card into a cluster so "cluster preserved" is meaningful.
+  page.on('dialog', (dialog) => dialog.accept('LiveSync'));
+  await page.getByRole('button', { name: 'New cluster' }).click();
+  const clusterNode = page.locator('.bw-cluster-node', { hasText: 'LiveSync' });
+  await expect(clusterNode).toBeVisible();
+
+  // The nav tab is active right now; bring the workspace page to front so
+  // mouse events (the drag) reach it.
+  await page.bringToFront();
+
+  const cardBox = (await navCard.boundingBox())!;
+  const clusterBox = (await clusterNode.boundingBox())!;
+  await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(clusterBox.x + clusterBox.width / 2, clusterBox.y + clusterBox.height / 2, {
+    steps: 15,
+  });
+  await page.mouse.up();
+
+  // The store debounces saves by 500ms; give it time, then read storage.
+  await page.waitForTimeout(1200);
+
+  // Identity anchor: the real tab id behind the NavOne card.
+  const navTabId = await findTabIdByUrl(navUrlA);
+  expect(navTabId).toBeGreaterThan(0);
+
+  const before = (await readSnapshot(page))!;
+  const beforeEntry = before.tabs.find((t) => t.tabId === navTabId);
+  expect(beforeEntry).toBeDefined();
+  expect(beforeEntry!.url).toBe(navUrlA);
+  expect(beforeEntry!.clusterId).toBeDefined(); // the drag landed
+
+  const boxBefore = (await navCard.boundingBox())!;
+
+  // Navigate the same real tab in place.
+  await navPage.goto(navUrlB);
+
+  // The card's text updates in place on the canvas (no reload).
+  const navCardB = page.locator('.bw-tab-card', { hasText: 'NavTwo' });
+  await expect(navCardB).toBeVisible();
+  await expect(page.locator('.bw-tab-card', { hasText: 'NavOne' })).toHaveCount(0);
+
+  // Same real tab (same id) now has the new URL.
+  expect(await findTabIdByUrl(navUrlB)).toBe(navTabId);
+
+  // The card stayed put on the canvas (fixed-size card, stable viewport).
+  const boxAfter = (await navCardB.boundingBox())!;
+  expect(Math.abs(boxAfter.x - boxBefore.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(boxAfter.y - boxBefore.y)).toBeLessThanOrEqual(1);
+
+  // Persisted snapshot: same tabId, new URL, position + cluster preserved.
+  await page.waitForTimeout(1200);
+  const after = (await readSnapshot(page))!;
+  const afterEntry = after.tabs.find((t) => t.tabId === navTabId);
+  expect(afterEntry).toBeDefined();
+  expect(afterEntry!.url).toBe(navUrlB);
+  expect(afterEntry!.position).toEqual(beforeEntry!.position);
+  expect(afterEntry!.clusterId).toBe(beforeEntry!.clusterId);
+
+  // Cleanup: close the tab we opened; its (clustered) card goes with it.
+  await navPage.close();
+  await expect(navCardB).toHaveCount(0);
+
+  await page.screenshot({ path: 'test-results/m4-live-sync.png', fullPage: true });
 });
