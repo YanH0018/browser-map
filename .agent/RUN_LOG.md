@@ -336,3 +336,44 @@ Notes:              windowId already flowed through normalizeTab/
                     Remaining M4: item 4 — e2e open tab → card appears,
                     close → gone, navigate → position/cluster preserved.
 ```
+
+---
+
+```
+Task:               M4 iteration 5 (loop iter 7) — e2e live-sync spec
+                    (item 4): open → card appears, close → gone,
+                    navigate → position/cluster preserved
+Model:              pi coding agent (fresh-context loop)
+Elapsed time:       ~25 min
+Tool calls:         ~30
+Build attempts:     1 (PASS on first run)
+Failed tests:       0 (82/82 unit, vitest; e2e 5/5 — new "live sync"
+                    test passed on first run)
+Self-recovered:     0
+Human intervention: 0
+Final commit:       830603e on feature/m4 (test only); task files
+                    separate
+Status:             PASS — M4 COMPLETE (all 4 items verified)
+Notes:              No product code changes needed; the live pipeline
+                    from items 1-3 (tabId identity, debounced event
+                    reducers, useTabEvents hook) already behaved
+                    correctly in a real browser. New e2e test in
+                    tests/e2e/smoke.spec.ts reuses the shared persistent
+                    context: opens a workspace page (hosts the listeners),
+                    opens a uniquely-URL'd data: tab → card appears via
+                    onCreated/onUpdated without reload; closes it → card
+                    gone (onRemoved); opens a second tab, drags its card
+                    onto a fresh "LiveSync" cluster (page.bringToFront()
+                    first so mouse events reach the workspace tab), then
+                    navigates that same real tab in place and asserts:
+                    card text updates in place at the same screen position
+                    (boundingBox ±1px), chrome.tabs.query shows the SAME
+                    tabId with the new URL, and the persisted v2 snapshot
+                    keeps position + clusterId for that tabId. Test closes
+                    its own tabs so later runs stay deterministic;
+                    SnapshotTab test interface gained optional tabId.
+                    Check loop green: compile, 82/82 unit, wxt build
+                    (449.22 kB), e2e 5/5 in headed Chromium.
+                    M4 done; feature/m4 awaits merge (human). Next:
+                    M5/M6 per .agent/TASKS.md "Later".
+```

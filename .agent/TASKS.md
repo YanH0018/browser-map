@@ -44,8 +44,18 @@ build, e2e 3/3 green at `60e9463`).
       hue, shown only with ≥2 windows) in `lib/windowBadge.ts`, rendered on
       TabNode + InspectorPanel; 8 unit tests in `tests/windowBadge.test.ts`
       (D11, `5ced706`)
-- [ ] e2e: open tab → card appears; close → gone; navigate →
-      position/cluster preserved (M4)
+- [x] e2e: open tab → card appears; close → gone; navigate →
+      position/cluster preserved (M4) — `tests/e2e/smoke.spec.ts`
+      "live sync" test: opens a uniquely-URL'd tab and asserts its card
+      appears without reload (live events), closes it → card gone,
+      drags a second tab onto a fresh cluster, navigates that same real
+      tab in place and asserts (canvas DOM + chrome.tabs API + persisted
+      v2 snapshot) that the card text updates in place, stays at the same
+      screen position, keeps its tabId and cluster assignment; cleans up
+      its tabs (`830603e`)
+
+M4 complete: all four items verified (compile, 82/82 unit, build,
+e2e 5/5 at `830603e`). Branch `feature/m4` awaits merge (human).
 
 ## Done (M3 — Workspace functionality)
 
