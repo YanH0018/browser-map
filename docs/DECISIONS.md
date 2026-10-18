@@ -85,3 +85,23 @@ ADR-style. Newest last. Each entry: decision, rationale, consequences.
   duplicate-URL tabs no longer alias one arrangement (each persisted
   entry is consumed at most once); `PersistedTabMetadata.tabId` is
   optional so v1 data stays valid.
+
+## D10 — Live chrome.tabs events via pure reducers + debounce
+
+- **Decision**: the workspace page subscribes directly to
+  `tabs.onCreated/onRemoved/onUpdated/onActivated` and folds debounced
+  (150 ms) event batches into the store through pure reducers
+  (`lib/tabEvents.ts`, `applyTabEvent(s)`). The background's
+  `bw:tabs-changed` full resync (D8) remains as a self-healing
+  fallback.
+- **Rationale**: the stateless background (D8) cannot reliably hold
+  per-tab state; pure reducers keep event handling unit-testable without
+  mocking the browser API, and debouncing absorbs bursts (restoring a
+  closed window fires many events at once).
+- **Consequences**: store gains `applyTabEvents`; reducers are
+  idempotent (duplicate `created` is a no-op, unknown tabIds are no-ops,
+  so the extension's own pages never become cards); `onActivated`
+  follows the real active tab and clears selection when that tab has no
+  card; `nextFreePositionFor` (lib/layout.ts) places fresh cards at the
+  next free cascade slot so they never overlap; event-driven changes are
+  persisted by the existing debounced snapshot save.

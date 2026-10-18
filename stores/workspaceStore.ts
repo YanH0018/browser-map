@@ -11,6 +11,7 @@ import { filterTabs } from '../lib/search';
 import { nextFreePosition } from '../lib/layout';
 import { createNamedSnapshot } from '../lib/namedSnapshots';
 import { applySnapshotToTabs } from '../lib/persistence';
+import { applyTabEvents as reduceTabEvents, type TabEvent } from '../lib/tabEvents';
 
 /**
  * Central workspace store (see docs/ARCHITECTURE.md).
@@ -26,6 +27,8 @@ export interface WorkspaceState {
   namedSnapshots: NamedSnapshot[];
 
   setTabs: (tabs: WorkspaceTab[]) => void;
+  /** Fold a debounced batch of live chrome.tabs events into the store (M4 item 2). */
+  applyTabEvents: (events: readonly TabEvent[]) => void;
   moveTab: (tabId: number, position: Position) => void;
   createCluster: (name: string, position: Position) => WorkspaceCluster;
   renameCluster: (clusterId: string, name: string) => void;
@@ -52,6 +55,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   namedSnapshots: [],
 
   setTabs: (tabs) => set({ tabs }),
+
+  applyTabEvents: (events) =>
+    set((s) => reduceTabEvents(s.tabs, s.selectedTabIds, events)),
 
   moveTab: (tabId, position) =>
     set((s) => ({
