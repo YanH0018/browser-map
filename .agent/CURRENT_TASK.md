@@ -3,22 +3,29 @@
 - **Task**: M4 — Robust browser synchronization (branch `feature/m4`)
 - **Status**: active (started 2026-10-17, engine: pi coding agent)
 
-## Progress (iteration 2, 2026-10-17)
+## Progress (iteration 5, 2026-10-17)
 
 - [x] Item 1 — tab identity by tabId: `lib/tabIdentity.ts` + D9, snapshot
       v2 with v1 fallback; committed `c01a453` (compile, 54/54 unit,
       build, e2e 4/4 green)
-- [ ] Item 2 — live chrome.tabs events (onCreated/onRemoved/onUpdated/
-      onActivated) → store, debounced; unit tests with mocked events
+- [x] Item 2 — live chrome.tabs events → store: pure reducers
+      `lib/tabEvents.ts` (created/removed/updated/activated, idempotent,
+      tabId-first so navigate keeps position+cluster), debounced (150 ms)
+      `useTabEvents.ts` hook wired in App, store action `applyTabEvents`,
+      `nextFreePositionFor` layout helper; 20 unit tests in
+      `tests/tabEvents.test.ts`; D10 ADR; committed `d8c8892`
+      (compile, 74/74 unit, build, e2e 4/4 green)
 - [ ] Item 3 — multi-window: windowId on cards + badge/label
 - [ ] Item 4 — e2e extension: open tab → card appears; close → gone;
       navigate → position/cluster preserved
 
-Next slice: item 2 (event reducers). Suggested shape: pure reducer
-module `lib/tabEvents.ts` consuming a small event union (created/
-removed/updated/activated) against the current tab list, wired in
-`App.tsx` (or a hook) via `browser.tabs.on*` listeners with a debounce
-window; store gains `applyTabEvents`/equivalent actions.
+Next slice: item 3 (multi-window badge). Suggested shape: `windowId`
+already flows through `normalizeTab`/WorkspaceTab; render a small
+window badge/label on TabNode (e.g. "W2" or the window's tab count),
+possibly with a per-window color; no grouping required. Then item 4:
+extend `tests/e2e/smoke.spec.ts` with open-tab → card appears, close →
+card gone (assert via chrome.tabs API + canvas DOM), navigate →
+position/cluster preserved.
 
 ## M4 task statement
 

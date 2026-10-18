@@ -260,3 +260,43 @@ Notes:              Iteration 1 had left uncommitted M4 item-1 work on
                    live chrome.tabs event reducers + debounce, item 3
                    multi-window badge, item 4 e2e open/close/navigate.
 ```
+
+---
+
+```
+Task:               M4 iteration 3 (loop iter 5) — live chrome.tabs
+                    event reducers + debounce (item 2)
+Model:              pi coding agent (fresh-context loop)
+Elapsed time:       ~15 min
+Tool calls:         ~30
+Build attempts:     2 (1st compile: 27 TS errors in prior run's
+                   uncommitted work — noUncheckedIndexedAccess in
+                   lib/tabEvents.ts + tests, wrong field name favIconUrl;
+                   fixed, 2nd PASS)
+Failed tests:       0 (74/74 pass after fixes; +20 new tabEvents tests;
+                    e2e 4/4)
+Self-recovered:     1 (compile errors, same run)
+Human intervention: 0
+Final commit:       d8c8892 on feature/m4 (code + tests + D10 ADR);
+                   task files separate
+Status:             PASS
+Notes:              Prior run (loop iter 4) had left uncommitted item-2
+                    work on feature/m4: lib/tabEvents.ts (pure reducers
+                    applyTabEvent/applyTabEvents over a TabEvent union —
+                    created adds at nextFreePositionFor, removed drops
+                    card + selection but not clusters, updated changes
+                    text in place preserving position/cluster per D9,
+                    activated follows the real active tab and clears
+                    selection for card-less tabs; all idempotent),
+                    useTabEvents.ts (150 ms debounced browser.tabs.on*
+                    listeners, own-extension tabs filtered at the
+                    boundary, flush-on-unmount), store action
+                    applyTabEvents, nextFreePositionFor in lib/layout.ts,
+                    20 tests. This iteration fixed the compile errors
+                    (index-access narrowing in applyUpdated + test,
+                    favIconUrl→faviconUrl field rename), added the D10
+                    ADR, and verified the full loop: compile, 74/74 unit,
+                    wxt build (448.46 kB), e2e 4/4 in Chromium.
+                    Remaining M4: item 3 multi-window badge, item 4 e2e
+                    open/close/navigate.
+```

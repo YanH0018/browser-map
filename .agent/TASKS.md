@@ -34,9 +34,11 @@ build, e2e 3/3 green at `60e9463`).
       shared by snapshot restore and live resync; snapshot version 2,
       v1 still loads (D9, `c01a453`); 12 unit tests in
       `tests/tabIdentity.test.ts`
-- [ ] Live chrome.tabs events → store (M4) — onCreated/onRemoved/
-      onUpdated/onActivated reducers + debounce; unit tests with mocked
-      events
+- [x] Live chrome.tabs events → store (M4) — pure reducers in
+      `lib/tabEvents.ts` (`applyTabEvent(s)`), debounced (150 ms) listener
+      hook `useTabEvents.ts` wired in App, store action `applyTabEvents`,
+      `nextFreePositionFor` for overlap-free new cards; 20 unit tests in
+      `tests/tabEvents.test.ts` (D10, `d8c8892`)
 - [ ] Multi-window behavior (M4) — windowId on cards, small badge/label
 - [ ] e2e: open tab → card appears; close → gone; navigate →
       position/cluster preserved (M4)
