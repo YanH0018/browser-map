@@ -10,6 +10,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { selectVisibleTabs, useWorkspaceStore } from '../stores/workspaceStore';
 import { clusterRects, resolveClusterDrop } from '../lib/clusterDrop';
+import { windowBadges } from '../lib/windowBadge';
 import TabNode from './TabNode';
 import ClusterNode from './ClusterNode';
 
@@ -20,6 +21,9 @@ const TAB_CARD_FALLBACK = { width: 240, height: 68 };
 
 export default function WorkspaceCanvas() {
   const tabs = useWorkspaceStore(selectVisibleTabs);
+  // Badges derive from the full tab list so window labels stay stable
+  // while a search filter hides cards.
+  const allTabs = useWorkspaceStore((s) => s.tabs);
   const clusters = useWorkspaceStore((s) => s.clusters);
   const moveTab = useWorkspaceStore((s) => s.moveTab);
   const assignTab = useWorkspaceStore((s) => s.assignTab);
@@ -27,6 +31,9 @@ export default function WorkspaceCanvas() {
   const setViewport = useWorkspaceStore((s) => s.setViewport);
 
   const nodes = useMemo<Node[]>(() => {
+    // Multi-window badges (M4 item 3): derived from the full tab list so
+    // every card knows its window even while a search filter hides others.
+    const badges = windowBadges(allTabs);
     const clusterNodes: Node[] = clusters.map((c) => ({
       id: c.id,
       type: 'cluster',
@@ -40,10 +47,10 @@ export default function WorkspaceCanvas() {
       id: String(t.tabId),
       type: 'tab',
       position: t.position,
-      data: { tab: t },
+      data: { tab: t, badge: badges.get(t.windowId) },
     }));
     return [...clusterNodes, ...tabNodes];
-  }, [tabs, clusters]);
+  }, [tabs, allTabs, clusters]);
 
   const onNodesChange = (changes: NodeChange[]) => {
     for (const change of changes) {

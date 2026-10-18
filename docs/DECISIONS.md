@@ -105,3 +105,21 @@ ADR-style. Newest last. Each entry: decision, rationale, consequences.
   card; `nextFreePositionFor` (lib/layout.ts) places fresh cards at the
   next free cascade slot so they never overlap; event-driven changes are
   persisted by the existing debounced snapshot save.
+
+## D11 — Multi-window: derived W1..Wn badges, no grouping yet
+
+- **Decision**: tabs from every browser window appear on the canvas;
+  each card shows a small badge (W1, W2, …) with a stable per-window
+  hue identifying its window. Badges are *derived* from the current tab
+  list (`lib/windowBadge.ts`, labels by ascending windowId) and are only
+  shown when two or more known windows exist. No per-window grouping.
+- **Rationale**: the M4 task asks for a small badge/label, not
+  grouping; deriving (instead of persisting) means no snapshot
+  migration and labels stay consistent as windows open/close; hiding
+  badges in single-window mode avoids pure noise.
+- **Consequences**: `windowBadges` is a pure, unit-tested helper;
+  TabNode renders the badge from node data; WorkspaceCanvas computes
+  badges once per render from the *full* tab list so labels stay stable
+  while a search filter hides cards; InspectorPanel shows the window
+  label for the selected tab; persistence format unchanged (windowId was
+  already on WorkspaceTab via normalizeTab).

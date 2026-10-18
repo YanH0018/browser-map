@@ -87,12 +87,26 @@ body {
 }
 
 .bw-tab-card {
+  position: relative;
   width: 240px;
   padding: 10px 12px;
   border-radius: 8px;
   background: #1d212b;
   border: 1px solid #333947;
   font-size: 13px;
+}
+
+/* Multi-window badge (M4 item 3): which browser window the tab lives in. */
+.bw-tab-badge {
+  position: absolute;
+  top: -9px;
+  right: 8px;
+  padding: 0 6px;
+  border-radius: 9px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
 }
 
 .bw-tab-card .bw-tab-title {

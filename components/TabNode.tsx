@@ -1,5 +1,6 @@
 import type { NodeProps } from '@xyflow/react';
 import type { WorkspaceTab } from '../lib/types';
+import type { WindowBadge } from '../lib/windowBadge';
 
 /** Deterministic hue (0-360) derived from a string, for the avatar fallback. */
 function hueFrom(str: string): number {
@@ -10,9 +11,18 @@ function hueFrom(str: string): number {
 
 /** Visual card for one browser tab. */
 export default function TabNode({ data }: NodeProps) {
-  const tab = (data as { tab: WorkspaceTab }).tab;
+  const { tab, badge } = data as { tab: WorkspaceTab; badge?: WindowBadge };
   return (
     <div className="bw-tab-card">
+      {badge && (
+        <span
+          className="bw-tab-badge"
+          title={`Browser window ${badge.label} (id ${badge.windowId})`}
+          style={{ background: `hsl(${badge.hue} 45% 30%)` }}
+        >
+          {badge.label}
+        </span>
+      )}
       <div className="bw-tab-title">
         {tab.faviconUrl ? (
           <img src={tab.faviconUrl} alt="" width={14} height={14} style={{ marginRight: 6, verticalAlign: -2 }} />
