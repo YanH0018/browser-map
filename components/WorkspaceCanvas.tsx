@@ -9,6 +9,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { selectVisibleTabs, useWorkspaceStore } from '../stores/workspaceStore';
+import { prefersReducedMotion } from '../lib/reducedMotion';
 import { clusterRects, resolveClusterDrop } from '../lib/clusterDrop';
 import { windowBadges, type WindowBadge } from '../lib/windowBadge';
 import type { Viewport, WorkspaceCluster, WorkspaceTab } from '../lib/types';
@@ -150,6 +151,10 @@ export default function WorkspaceCanvas() {
     [setViewport],
   );
 
+  // Reduced motion (M5 item 4, D15): skip the fitView pan/zoom animation;
+  // CSS transitions are disabled by a prefers-reduced-motion media query.
+  const reducedMotion = prefersReducedMotion();
+
   return (
     <div className="bw-canvas">
       <ReactFlow
@@ -160,6 +165,7 @@ export default function WorkspaceCanvas() {
         onNodeClick={onNodeClick}
         onMoveEnd={onMoveEnd}
         fitView
+        fitViewOptions={reducedMotion ? { duration: 0 } : undefined}
         proOptions={{ hideAttribution: true }}
       >
         <Background />

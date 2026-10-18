@@ -193,3 +193,16 @@ body {
 .bw-cluster-actions button:hover {
   background: #262c39;
 }
+
+/* Accessibility (M5 item 4, D15): honor prefers-reduced-motion — disable
+   every transition/animation in the app, including XYFlow's own CSS
+   (node box-shadow/border transitions, edge dash animation). The canvas
+   also skips the fitView pan/zoom animation (duration 0) via
+   lib/reducedMotion.ts. */
+@media (prefers-reduced-motion: reduce) {
+  .bw-app *,
+  .bw-canvas * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

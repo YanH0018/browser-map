@@ -28,7 +28,9 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
  * Global keyboard navigation for the canvas (M5 item 1, D12):
  * - Arrow keys move a visible selection between tab cards (spatial-nearest)
  * - Enter activates the real browser tab behind the selected card — the same
- *   `activateBrowserTab` path as the inspector's "Activate tab" button (M3)
+ *   `activateBrowserTab` path as the inspector's "Activate tab" button (M3);
+ *   Space does the same when a card itself has focus (role="button" semantics,
+ *   M5 item 4 — focusing a card selects it, so selected == focused)
  * - Escape clears the selection
  *
  * Listens on document in the capture phase so it wins over React Flow's own
@@ -52,7 +54,12 @@ export function useKeyboardNav(): void {
         return;
       }
 
-      if (e.key === 'Enter') {
+      // Enter works from anywhere; Space only when a canvas card has focus
+      // (cards are role="button"; real buttons handle Space natively and are
+      // filtered out by isInteractiveTarget above).
+      const isCardTarget =
+        e.target instanceof HTMLElement && e.target.classList.contains('bw-tab-card');
+      if (e.key === 'Enter' || (e.key === ' ' && isCardTarget)) {
         const state = useWorkspaceStore.getState();
         const tabId = state.selectedTabIds[0];
         if (tabId === undefined) return;
