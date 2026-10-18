@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AUTO_LAYOUT_SNAPSHOT_NAME,
   selectVisibleTabs,
@@ -6,6 +6,13 @@ import {
 } from '../stores/workspaceStore';
 import { TIDY_GRID_DEFAULTS } from '../lib/autoLayout';
 import type { WorkspaceTab, WorkspaceCluster } from '../lib/types';
+
+// The embedding pipeline's storage I/O is mocked: unit tests never touch a
+// real browser.storage (the WXT stub would work, but this is explicit).
+vi.mock('../lib/workspaceStorage', () => ({
+  loadEmbeddingCache: vi.fn(async (): Promise<Map<string, number[]>> => new Map()),
+  saveEmbeddingCache: vi.fn(async (): Promise<void> => {}),
+}));
 
 const tab = (over: Partial<WorkspaceTab>): WorkspaceTab => ({
   tabId: 1,
@@ -27,6 +34,8 @@ describe('workspaceStore', () => {
       selectedTabIds: [],
       searchQuery: '',
       namedSnapshots: [],
+      semanticBusy: false,
+      semanticNotice: null,
     });
   });
 
@@ -346,6 +355,145 @@ describe('workspaceStore', () => {
         expect((t.position.x - origin.x) % columnWidth).toBe(0);
         expect((t.position.y - origin.y) % rowHeight).toBe(0);
       }
+    });
+  });
+
+  describe('semantic clustering (M7)', () => {
+    const fetchMock = vi.fn();
+
+    /** Minimal Response stand-in for the mocked fetch. */
+    const jsonResponse = (body: unknown, ok = true, status = 200): Response =>
+      ({ ok, status, json: async () => body }) as unknown as Response;
+
+    /** OpenAI-shaped embeddings response for the given vectors. */
+    const embeddingBody = (vectors: number[][]) => ({
+      object: 'list',
+      data: vectors.map((embedding, index) => ({ object: 'embedding', index, embedding })),
+    });
+
+    // Fixed 3-D integer vectors: within-group cos = 0.8 (≥ threshold),
+    // every cross-group pair ≤ 0.36 (< threshold) — two clean groups.
+    const V: Record<'g1' | 'g2' | 'p1' | 'p2' | 's', number[]> = {
+      g1: [5, 0, 0], // cos(g1,g2) = 0.8
+      g2: [4, 3, 0],
+      p1: [0, 0, 5], // cos(p1,p2) = 0.8
+      p2: [0, 3, 4],
+      s: [1, -3, 1], // ≤ 0.30 from everything → singleton
+    };
+
+    beforeEach(() => {
+      fetchMock.mockReset();
+      vi.stubGlobal('fetch', fetchMock);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('suggestClusters groups similar unclustered tabs into named clusters', async () => {
+      const existing = {
+        id: 'cluster-user',
+        name: 'User cluster',
+        position: { x: 0, y: 0 },
+        size: { width: 360, height: 260 },
+      };
+      useWorkspaceStore.getState().setTabs([
+        tab({ tabId: 1, title: 'Repo A', domain: 'github.com', url: 'https://g1.example.com' }),
+        tab({ tabId: 2, title: 'Repo B', domain: 'github.com', url: 'https://g2.example.com' }),
+        tab({ tabId: 3, title: 'PyTorch docs', domain: '', url: 'https://p1.example.com' }),
+        tab({ tabId: 4, title: 'PyTorch tutorial', domain: '', url: 'https://p2.example.com' }),
+        tab({ tabId: 5, title: 'Unrelated', domain: '', url: 'https://u1.example.com' }), // singleton
+        tab({ tabId: 6, title: 'Inside', domain: 'x.example.com', url: 'https://x1.example.com', clusterId: existing.id }),
+      ]);
+      useWorkspaceStore.setState({ clusters: [existing] });
+
+      // The endpoint answers with the fixed vectors, in request order.
+      fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
+        const input = (JSON.parse(init!.body as string) as { input: string[] }).input;
+        const byText = new Map<string, number[]>([
+          ['Repo A github.com', V.g1],
+          ['Repo B github.com', V.g2], // 0.8 with Repo A → same group
+          ['PyTorch docs', V.p1],
+          ['PyTorch tutorial', V.p2], // 0.8 with PyTorch docs → same group
+          ['Unrelated', V.s], // ≤ 0.30 from everything → singleton, stays out
+        ]);
+        return jsonResponse(embeddingBody(input.map((t) => byText.get(t)!)));
+      });
+
+      await useWorkspaceStore.getState().suggestClusters();
+      const s = useWorkspaceStore.getState();
+
+      // Two new clusters, named by dominant domain / common title prefix.
+      expect(s.clusters).toHaveLength(3);
+      expect(s.clusters[0]).toEqual(existing); // existing cluster untouched
+      const names = s.clusters.slice(1).map((c) => c.name).sort();
+      expect(names).toEqual(['PyTorch', 'github.com']);
+
+      const github = s.clusters.find((c) => c.name === 'github.com')!;
+      const pytorch = s.clusters.find((c) => c.name === 'PyTorch')!;
+      expect(s.tabs.find((t) => t.tabId === 1)?.clusterId).toBe(github.id);
+      expect(s.tabs.find((t) => t.tabId === 2)?.clusterId).toBe(github.id);
+      expect(s.tabs.find((t) => t.tabId === 3)?.clusterId).toBe(pytorch.id);
+      expect(s.tabs.find((t) => t.tabId === 4)?.clusterId).toBe(pytorch.id);
+      expect(s.tabs.find((t) => t.tabId === 5)?.clusterId).toBeUndefined(); // singleton
+      expect(s.tabs.find((t) => t.tabId === 6)?.clusterId).toBe(existing.id); // untouched
+
+      // Safety snapshot captured the PRE-run arrangement (M6 pattern).
+      const snap = s.namedSnapshots.find((x) => x.name === AUTO_LAYOUT_SNAPSHOT_NAME)!;
+      expect(snap.clusters).toHaveLength(1);
+      expect(snap.tabs.find((t) => t.tabId === 1)?.clusterId).toBeUndefined();
+
+      // Run finished cleanly: not busy, no notice.
+      expect(s.semanticBusy).toBe(false);
+      expect(s.semanticNotice).toBeNull();
+    });
+
+    it('endpoint failure surfaces a notice and changes nothing (no crash, no clusters)', async () => {
+      useWorkspaceStore.getState().setTabs([
+        tab({ tabId: 1, url: 'https://f1.example.com' }),
+        tab({ tabId: 2, url: 'https://f2.example.com' }),
+      ]);
+      fetchMock.mockRejectedValueOnce(new TypeError('fetch failed'));
+
+      await useWorkspaceStore.getState().suggestClusters();
+      const s = useWorkspaceStore.getState();
+
+      expect(s.semanticNotice).toMatch(/unavailable/);
+      expect(s.semanticBusy).toBe(false); // run finished, button re-enabled
+      expect(s.clusters).toHaveLength(0); // nothing created
+      expect(s.tabs.every((t) => t.clusterId === undefined)).toBe(true);
+      // A failed run leaves no traces: not even a safety snapshot.
+      expect(s.namedSnapshots).toHaveLength(0);
+    });
+
+    it('is idempotent: a second click with everything clustered adds nothing', async () => {
+      useWorkspaceStore.getState().setTabs([
+        tab({ tabId: 1, url: 'https://i1.example.com' }),
+        tab({ tabId: 2, url: 'https://i2.example.com' }),
+      ]);
+      fetchMock.mockResolvedValueOnce(jsonResponse(embeddingBody([V.g1, V.g2])));
+      await useWorkspaceStore.getState().suggestClusters();
+      const afterFirst = useWorkspaceStore.getState();
+      expect(afterFirst.clusters).toHaveLength(1);
+
+      fetchMock.mockClear();
+      await useWorkspaceStore.getState().suggestClusters(); // all tabs clustered now
+      const s = useWorkspaceStore.getState();
+
+      expect(s.clusters).toHaveLength(1); // no new clusters
+      expect(fetchMock).not.toHaveBeenCalled(); // nothing to embed → no endpoint call
+    });
+
+    it('is a no-op (no snapshot, no fetch) when fewer than two tabs are unclustered', async () => {
+      useWorkspaceStore.getState().setTabs([tab({ tabId: 1, url: 'https://s1.example.com' })]);
+      const before = useWorkspaceStore.getState();
+
+      await useWorkspaceStore.getState().suggestClusters();
+      const s = useWorkspaceStore.getState();
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(s.namedSnapshots).toEqual(before.namedSnapshots);
+      expect(s.semanticNotice).toBeNull();
     });
   });
 });

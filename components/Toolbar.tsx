@@ -10,6 +10,9 @@ export default function Toolbar() {
   const deleteNamedSnapshot = useWorkspaceStore((s) => s.deleteNamedSnapshot);
   const tidyGrid = useWorkspaceStore((s) => s.tidyGrid);
   const groupByDomain = useWorkspaceStore((s) => s.groupByDomain);
+  const suggestClusters = useWorkspaceStore((s) => s.suggestClusters);
+  const semanticBusy = useWorkspaceStore((s) => s.semanticBusy);
+  const semanticNotice = useWorkspaceStore((s) => s.semanticNotice);
 
   return (
     <header className="bw-toolbar">
@@ -51,7 +54,19 @@ export default function Toolbar() {
         >
           Group by domain
         </button>
+        <button
+          aria-label="Suggest clusters: group similar unclustered tabs using local embeddings"
+          onClick={() => void suggestClusters()}
+          disabled={semanticBusy}
+        >
+          {semanticBusy ? 'Suggesting…' : 'Suggest clusters'}
+        </button>
       </span>
+      {semanticNotice && (
+        <div className="bw-semantic-notice" role="status" aria-live="polite">
+          {semanticNotice}
+        </div>
+      )}
       {namedSnapshots.length > 0 && (
         <div className="bw-snapshots">
           {namedSnapshots.map((snap) => (

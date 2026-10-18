@@ -13,6 +13,9 @@ import { createNamedSnapshot } from '../lib/namedSnapshots';
 import { applySnapshotToTabs } from '../lib/persistence';
 import { groupByDomain, tidyGridPositions } from '../lib/autoLayout';
 import { applyTabEvents as reduceTabEvents, type TabEvent } from '../lib/tabEvents';
+import { embedTabs } from '../lib/embeddings';
+import { buildSuggestedClusters, MIN_CLUSTER_SIZE } from '../lib/semantic';
+import { loadEmbeddingCache, saveEmbeddingCache } from '../lib/workspaceStorage';
 
 /**
  * Central workspace store (see docs/ARCHITECTURE.md).
@@ -49,6 +52,13 @@ export interface WorkspaceState {
   tidyGrid: () => void;
   /** Group by domain (M6 item 2): one new cluster per distinct domain. */
   groupByDomain: () => void;
+
+  /** Suggest clusters (M7): embed unclustered tabs locally, group by similarity. */
+  suggestClusters: () => Promise<void>;
+  /** True while a semantic-clustering run is in flight (button disabled). */
+  semanticBusy: boolean;
+  /** Failure notice shown in the toolbar; null when there is nothing to report. */
+  semanticNotice: string | null;
 }
 
 /** Safety snapshot name for auto-layout (M6 item 3); overwritten each run. */
@@ -63,6 +73,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   viewport: DEFAULT_VIEWPORT,
   searchQuery: '',
   namedSnapshots: [],
+  semanticBusy: false,
+  semanticNotice: null,
 
   setTabs: (tabs) => set({ tabs }),
 
@@ -182,6 +194,61 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
         }),
       };
     }),
+
+  // Suggest clusters (M7 item 3): embed UNCLUSTERED tabs' `title + hostname`
+  // via the local LM Studio endpoint (vectors cached by URL), greedily
+  // cluster them by cosine similarity, and create one new cluster per group
+  // of >= MIN_CLUSTER_SIZE members. Existing clusters/assignments are never
+  // touched (D17/D18). Safety: the `before-autolayout` snapshot is upserted
+  // BEFORE any mutation, exactly like the M6 auto-layouts. Any endpoint
+  // failure surfaces a toolbar notice and changes nothing (never crashes,
+  // never blocks the canvas — the work is async).
+  suggestClusters: async () => {
+    const store = useWorkspaceStore;
+    if (store.getState().semanticBusy) return; // no double runs
+    const unclustered = store.getState().tabs.filter((t) => t.clusterId === undefined);
+    if (unclustered.length < MIN_CLUSTER_SIZE) return; // nothing to suggest: no-op, no snapshot
+
+    store.setState({ semanticBusy: true, semanticNotice: null });
+    try {
+      const cache = await loadEmbeddingCache();
+      const { vectorsByTabId, cache: updatedCache } = await embedTabs(unclustered, cache);
+      if (updatedCache !== cache) {
+        await saveEmbeddingCache(updatedCache); // local storage: fast, awaited
+      }
+
+      // Safety (M6 pattern): capture the pre-mutation canvas state right
+      // before mutating. A failed run (endpoint down) changes nothing —
+      // not even the snapshot list.
+      store.setState((s) => withSafetySnapshot(s));
+
+      // Apply against FRESH state: tabs may have opened/closed while the
+      // endpoint was busy. Vectors are keyed by tabId, so stale entries are
+      // simply unused and new tabs without vectors stay unclustered.
+      store.setState((s) => {
+        const { newClusters, assignments } = buildSuggestedClusters(
+          s.tabs,
+          s.clusters,
+          vectorsByTabId,
+        );
+        return {
+          ...s,
+          clusters: [...s.clusters, ...newClusters],
+          tabs: s.tabs.map((t) => {
+            const clusterId = assignments.get(t.tabId);
+            return clusterId !== undefined ? { ...t, clusterId } : t;
+          }),
+        };
+      });
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      store.setState({
+        semanticNotice: `Semantic clustering unavailable (${reason}). No clusters were created.`,
+      });
+    } finally {
+      store.setState({ semanticBusy: false });
+    }
+  },
 }));
 
 /** State with the `before-autolayout` snapshot upserted (M6 item 3). */

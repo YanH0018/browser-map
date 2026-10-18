@@ -552,3 +552,64 @@ Notes:              M6 complete. lib/autoLayout.ts (pure, deterministic):
                     next milestone per ROADMAP is M7 (local embeddings +
                     semantic clustering).
 ```
+
+---
+
+```
+Task:               M7 — semantic clustering (iteration 3 of fresh-context loop)
+Model:              pi coding agent, qwen3.8-27b-mlx (LM Studio)
+Elapsed time:       ~30 min
+Tool calls:         ~45
+Build attempts:     1 (PASS on first run)
+Failed tests:       5 unit (all test-data bugs left by the interrupted
+                    iteration-2 run, not algorithm bugs — see Notes)
+Self-recovered:     1 (recovered uncommitted iteration-2 work — full M7
+                    implementation; fixed the 5 test-data bugs, wrote the
+                    missing D18 ADR, added the missing e2e slice)
+Human intervention: 0
+Final commit:       37aa208 on feature/m7 (code + tests + D18); task
+                    files separate
+Status:             PASS — M7 COMPLETE (all 4 items verified)
+Notes:              Iteration 2 had left a complete-but-red M7 on
+                    feature/m7: lib/semantic.ts (hand-rolled cosine +
+                    greedy single-linkage threshold clustering, union-find
+                    over pairs sorted desc, merge while sim ≥ 0.5 — D18;
+                    MIN_CLUSTER_SIZE 2; dominantDomain/commonTitlePrefix/
+                    suggestedClusterName naming; buildSuggestedClusters —
+                    unclustered tabs only, stable ids cluster-semantic-<k>,
+                    M6 cascade geometry), lib/embeddings.ts (LM Studio
+                    OpenAI-compatible endpoint, model nomic-embed-text-v1.5,
+                    chunked at 32, 120 s timeout; URL-keyed vector cache in
+                    a separate embeddingCache storage key, malformed entries
+                    dropped on load; any failure throws a plain Error),
+                    store action suggestClusters (embed unclustered only →
+                    upsert before-autolayout BEFORE mutating → apply against
+                    fresh state; failure → role=status toolbar notice,
+                    nothing mutated — not even the snapshot list), Toolbar
+                    button + .bw-semantic-notice CSS, autoLayout exports
+                    (nextFreeClusterPosition/uniqueClusterId,
+                    DOMAIN_CLUSTER_SIZE→AUTO_CLUSTER_SIZE). This iteration:
+                    (1) fixed 5 test-data bugs — vector e=[0,1] has cos 0.8
+                    with b=[3,4] so "separate" groups merged (3 semantic
+                    tests; swapped in f=[-1,0], cos ≤ -0.6 from a and b);
+                    buildSuggestedClusters test reused V.b for tab 4 (identical
+                    to tab 1) and a=[1,0] bridged the two intended groups via
+                    cos(a,b)=0.6 → added p=[1,-2]/q=[2,-3] (cos ≈ 0.99, both
+                    < 0.5 from the github group) + h=[-1,-1] (≤ 0.32 from
+                    everything); embeddings fixture tabs overrode URL but not
+                    the default domain → added domain overrides; (2) wrote D18
+                    (threshold 0.5 calibration: same-topic pairs measured
+                    0.57–0.85, cross-topic 0.36–0.43; single-linkage
+                    rationale; cache = optimization not truth; failure
+                    contract); (3) added the missing e2e slice — button
+                    exists + endpoint mocked unreachable via page.route
+                    abort (deterministic even if LM Studio runs on :1234) →
+                    notice renders, button re-enables, nothing mutated (tab
+                    set, clusters, Xi/Psi unclustered, snapshot list
+                    byte-identical). Full loop green: compile, 179/179 unit
+                    (was 132; +24 semantic, +13 embeddings, +9 store), wxt
+                    build (460.28 kB), e2e 8/8 in headed Chromium.
+                    Remaining: none for M7 — branch feature/m7 awaits human
+                    merge; next milestone per ROADMAP is M8 (natural-language
+                    workspace commands via local model).
+```
