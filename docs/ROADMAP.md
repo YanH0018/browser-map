@@ -17,7 +17,7 @@
 - [x] **M5 — Interaction quality**: keyboard navigation; visual polish; (pi engine, 5 iterations, e7328eb)
   performance with many tabs; accessibility; cluster interaction.
 - [x] **M6 — Automatic layout**: tidy grid; group-by-domain; safety snapshots (autochain)
-- [ ] **M7 — Semantic clustering**: embeddings + local semantic grouping.
+- [x] **M7 — Semantic clustering**: local embeddings + greedy clustering.
 - [ ] **M8 — Local AI workspace assistant**: natural-language workspace
   manipulation (runs entirely on the local inference plane).
 - [ ] **M9 — 2.5D / 3D experiments**: richer spatial representation.
