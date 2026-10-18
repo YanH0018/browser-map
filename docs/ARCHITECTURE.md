@@ -19,6 +19,11 @@
   selection and viewport state without a custom canvas.
 - **Persistence** (`lib/persistence.ts` pure + `lib/workspaceStorage.ts`
   I/O) — serializes to `WorkspaceSnapshot` in `browser.storage.local`.
+- **Auto-layout** (`lib/autoLayout.ts`, pure, M6) — deterministic layout
+  algorithms: `tidyGridPositions` (regular grid in reading order, D16) and
+  `groupByDomain` (one cluster per distinct domain among unclustered tabs,
+  D17). The store applies their results behind a `before-autolayout`
+  safety snapshot; UI only wires toolbar buttons.
 
 ## Extension entrypoints
 

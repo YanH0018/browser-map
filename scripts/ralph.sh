@@ -59,7 +59,7 @@ last_activity_epoch() {
 
 if ! curl -sf -m 5 "$OPENAI_BASE_URL/models" | grep -q "$OPENAI_MODEL"; then
   echo "✗ inference plane not ready (want $OPENAI_MODEL at $OPENAI_BASE_URL)"
-  echo "  fix: lms server start && lms load $OPENAI_MODEL -c 65536 --ttl 3600"
+  echo "  fix: lms server start && lms load $OPENAI_MODEL -c 131072 --ttl 3600"
   exit 1
 fi
 
@@ -72,7 +72,7 @@ if [ -x "$LMS_CLI" ]; then
   if [ -z "${CTX:-}" ] || [ "$CTX" -lt 32768 ] 2>/dev/null; then
     echo "⚠ live context is ${CTX:-unknown} (< 32768) — reloading $OPENAI_MODEL at 65536"
     "$LMS_CLI" unload "$OPENAI_MODEL" >/dev/null 2>&1 || true
-    "$LMS_CLI" load "$OPENAI_MODEL" -c 65536 --ttl 3600 >/dev/null 2>&1 || true
+    "$LMS_CLI" load "$OPENAI_MODEL" -c 131072 --ttl 3600 >/dev/null 2>&1 || true
   fi
 fi
 if [ -n "$(git status --porcelain)" ]; then

@@ -1,6 +1,7 @@
 import { test, expect, chromium, type BrowserContext, type Page } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { TIDY_GRID_DEFAULTS } from '../../lib/autoLayout';
 
 /**
  * M1 acceptance smoke test: launch Chromium with the built extension,
@@ -33,6 +34,12 @@ interface WorkspaceSnapshotLike {
   clusters: SnapshotCluster[];
 }
 
+interface NamedSnapshotLike {
+  id: string;
+  name: string;
+  tabs: SnapshotTab[];
+}
+
 /** Read the persisted workspace snapshot straight from extension storage. */
 async function readSnapshot(page: Page): Promise<WorkspaceSnapshotLike | null> {
   return page.evaluate(
@@ -46,6 +53,26 @@ async function readSnapshot(page: Page): Promise<WorkspaceSnapshotLike | null> {
         );
       }),
   );
+}
+
+/** Read the persisted named snapshots straight from extension storage. */
+async function readNamedSnapshots(page: Page): Promise<NamedSnapshotLike[]> {
+  return page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const chromeApi = (window as unknown as { chrome: any }).chrome;
+        // wxt/utils/storage resolves "local:namedSnapshots" to area
+        // "local", key "namedSnapshots".
+        chromeApi.storage.local.get('namedSnapshots', (value: Record<string, unknown>) =>
+          resolve((value['namedSnapshots'] as NamedSnapshotLike[] | undefined) ?? []),
+        );
+      }),
+  );
+}
+
+/** Stable identity of a persisted tab entry (v2: real tabId, else URL). */
+function tabKey(t: SnapshotTab): string {
+  return t.tabId !== undefined ? `tab:${t.tabId}` : `url:${t.url}`;
 }
 
 const extensionPath = path.resolve(
@@ -443,4 +470,81 @@ test('keyboard nav: arrows move selection, Enter activates real tab, Escape clea
   expect(urls).not.toContain(leftUrl);
 
   await page.screenshot({ path: 'test-results/m5-keyboard-nav.png', fullPage: true });
+});
+
+/**
+ * M6 acceptance (items 1 + 3): "Tidy grid" snaps every card onto the
+ * regular grid (lattice positions, no two cards share a slot), the safety
+ * snapshot `before-autolayout` captures the pre-mutation arrangement, and
+ * the tidied layout persists across a reload.
+ */
+test('tidy grid: cards land on the regular grid; safety snapshot; reload persists', async () => {
+  const muUrl = 'data:text/html,<title>Mu</title>';
+  const nuUrl = 'data:text/html,<title>Nu</title>';
+  await (await context.newPage()).goto(muUrl);
+  await (await context.newPage()).goto(nuUrl);
+
+  let worker = context.serviceWorkers()[0];
+  if (!worker) worker = await context.waitForEvent('serviceworker');
+  const extensionId = new URL(worker.url()).host;
+
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/workspace.html`);
+
+  const muCard = page.locator('.bw-tab-card', { hasText: 'Mu' });
+  const nuCard = page.locator('.bw-tab-card', { hasText: 'Nu' });
+  await expect(muCard).toBeVisible();
+  await expect(nuCard).toBeVisible();
+
+  // Let hydration + live sync settle and their debounced saves flush, so
+  // the pre-tidy storage read matches the in-memory state at click time.
+  await page.waitForTimeout(1200);
+  const pre = (await readSnapshot(page))!;
+  expect(pre.tabs.length).toBeGreaterThan(0);
+
+  // Click "Tidy grid" (M6 item 1).
+  await page.getByRole('button', { name: 'Tidy grid' }).click();
+
+  // The store debounces saves by 500ms; give it time, then read storage.
+  await page.waitForTimeout(1200);
+  const post = (await readSnapshot(page))!;
+
+  // Same tab set, every card on the tidy lattice, no shared slots.
+  expect(post.tabs.map(tabKey).sort()).toEqual(pre.tabs.map(tabKey).sort());
+  const { origin, columnWidth, rowHeight } = TIDY_GRID_DEFAULTS;
+  const seenSlots = new Set<string>();
+  for (const t of post.tabs) {
+    expect(t.position.x - origin.x).toBeGreaterThanOrEqual(0);
+    expect((t.position.x - origin.x) % columnWidth).toBe(0); // on the lattice
+    expect(t.position.y - origin.y).toBeGreaterThanOrEqual(0);
+    expect((t.position.y - origin.y) % rowHeight).toBe(0); // on the lattice
+    const slot = `${t.position.x}:${t.position.y}`;
+    expect(seenSlots.has(slot)).toBe(false); // no two cards share a slot
+    seenSlots.add(slot);
+  }
+
+  // Safety (M6 item 3): the before-autolayout snapshot captured the
+  // PRE-tidy arrangement, one click of Restore would bring it back.
+  const safety = (await readNamedSnapshots(page)).filter((s) => s.name === 'before-autolayout');
+  expect(safety).toHaveLength(1); // overwritten in place, never duplicated
+  const preByKey = new Map(pre.tabs.map((t) => [tabKey(t), t]));
+  for (const snapTab of safety[0]!.tabs) {
+    const preTab = preByKey.get(tabKey(snapTab));
+    expect(preTab).toBeDefined(); // same tab set as before the click
+    expect(snapTab.position).toEqual(preTab!.position); // pre-tidy positions
+  }
+
+  // Reload: the tidied layout must come back unchanged.
+  await page.reload();
+  await expect(muCard).toBeVisible();
+  await expect(nuCard).toBeVisible();
+  await page.waitForTimeout(1200);
+  const reloaded = (await readSnapshot(page))!;
+  expect(reloaded.tabs.map(tabKey).sort()).toEqual(post.tabs.map(tabKey).sort());
+  const postByKey = new Map(post.tabs.map((t) => [tabKey(t), t]));
+  for (const t of reloaded.tabs) {
+    expect(t.position).toEqual(postByKey.get(tabKey(t))!.position); // no drift
+  }
+
+  await page.screenshot({ path: 'test-results/m6-tidy-grid.png', fullPage: true });
 });

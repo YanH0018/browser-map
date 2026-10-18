@@ -11,6 +11,7 @@ import { filterTabs } from '../lib/search';
 import { nextFreePosition } from '../lib/layout';
 import { createNamedSnapshot } from '../lib/namedSnapshots';
 import { applySnapshotToTabs } from '../lib/persistence';
+import { groupByDomain, tidyGridPositions } from '../lib/autoLayout';
 import { applyTabEvents as reduceTabEvents, type TabEvent } from '../lib/tabEvents';
 
 /**
@@ -44,7 +45,14 @@ export interface WorkspaceState {
   saveNamedSnapshot: (name: string) => void;
   restoreNamedSnapshot: (id: string) => void;
   deleteNamedSnapshot: (id: string) => void;
+  /** Tidy grid (M6 item 1): snap every card onto a regular grid. */
+  tidyGrid: () => void;
+  /** Group by domain (M6 item 2): one new cluster per distinct domain. */
+  groupByDomain: () => void;
 }
+
+/** Safety snapshot name for auto-layout (M6 item 3); overwritten each run. */
+export const AUTO_LAYOUT_SNAPSHOT_NAME = 'before-autolayout';
 
 let clusterCounter = 0;
 
@@ -146,7 +154,47 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
 
   deleteNamedSnapshot: (id) =>
     set((s) => ({ namedSnapshots: s.namedSnapshots.filter((x) => x.id !== id) })),
+
+  // Auto-layout safety (M6 item 3): capture the pre-mutation canvas state
+  // as a named snapshot BEFORE applying any auto-layout change, so one
+  // click of Restore brings the previous arrangement back. The snapshot is
+  // overwritten (same name, updated in place) on every auto-layout run.
+  tidyGrid: () =>
+    set((s) => {
+      const safe = withSafetySnapshot(s);
+      const positions = tidyGridPositions(safe.tabs);
+      return {
+        ...safe,
+        tabs: safe.tabs.map((t) => ({ ...t, position: positions.get(t.tabId)! })),
+      };
+    }),
+
+  groupByDomain: () =>
+    set((s) => {
+      const safe = withSafetySnapshot(s);
+      const { newClusters, assignments } = groupByDomain(safe.tabs, safe.clusters);
+      return {
+        ...safe,
+        clusters: [...safe.clusters, ...newClusters],
+        tabs: safe.tabs.map((t) => {
+          const clusterId = assignments.get(t.tabId);
+          return clusterId !== undefined ? { ...t, clusterId } : t;
+        }),
+      };
+    }),
 }));
+
+/** State with the `before-autolayout` snapshot upserted (M6 item 3). */
+function withSafetySnapshot(s: WorkspaceState): WorkspaceState {
+  const snapshot = createNamedSnapshot(AUTO_LAYOUT_SNAPSHOT_NAME, s.tabs, s.clusters, s.viewport);
+  const existing = s.namedSnapshots.find((x) => x.name === AUTO_LAYOUT_SNAPSHOT_NAME);
+  return {
+    ...s,
+    namedSnapshots: existing
+      ? s.namedSnapshots.map((x) => (x.id === existing.id ? snapshot : x))
+      : [...s.namedSnapshots, snapshot],
+  };
+}
 
 /** Selector: tabs visible under the current search query. */
 export function selectVisibleTabs(s: WorkspaceState): WorkspaceTab[] {

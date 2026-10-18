@@ -50,6 +50,11 @@ body {
   cursor: pointer;
 }
 
+.bw-autolayout {
+  display: flex;
+  gap: 6px;
+}
+
 .bw-snapshots {
   display: flex;
   flex-wrap: wrap;

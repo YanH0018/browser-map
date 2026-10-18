@@ -8,6 +8,8 @@ export default function Toolbar() {
   const saveNamedSnapshot = useWorkspaceStore((s) => s.saveNamedSnapshot);
   const restoreNamedSnapshot = useWorkspaceStore((s) => s.restoreNamedSnapshot);
   const deleteNamedSnapshot = useWorkspaceStore((s) => s.deleteNamedSnapshot);
+  const tidyGrid = useWorkspaceStore((s) => s.tidyGrid);
+  const groupByDomain = useWorkspaceStore((s) => s.groupByDomain);
 
   return (
     <header className="bw-toolbar">
@@ -36,6 +38,20 @@ export default function Toolbar() {
       >
         Save snapshot
       </button>
+      <span className="bw-autolayout" role="group" aria-label="Automatic layout">
+        <button
+          aria-label="Tidy grid: snap every card onto a regular grid"
+          onClick={() => tidyGrid()}
+        >
+          Tidy grid
+        </button>
+        <button
+          aria-label="Group by domain: create one cluster per tab domain"
+          onClick={() => groupByDomain()}
+        >
+          Group by domain
+        </button>
+      </span>
       {namedSnapshots.length > 0 && (
         <div className="bw-snapshots">
           {namedSnapshots.map((snap) => (
