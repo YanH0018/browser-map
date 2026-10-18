@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { selectVisibleTabs, useWorkspaceStore } from '../stores/workspaceStore';
-import type { WorkspaceTab } from '../lib/types';
+import {
+  AUTO_LAYOUT_SNAPSHOT_NAME,
+  selectVisibleTabs,
+  useWorkspaceStore,
+} from '../stores/workspaceStore';
+import { TIDY_GRID_DEFAULTS } from '../lib/autoLayout';
+import type { WorkspaceTab, WorkspaceCluster } from '../lib/types';
 
 const tab = (over: Partial<WorkspaceTab>): WorkspaceTab => ({
   tabId: 1,
@@ -195,6 +200,152 @@ describe('workspaceStore', () => {
       const s = useWorkspaceStore.getState();
       expect(s.namedSnapshots).toHaveLength(1);
       expect(s.namedSnapshots[0]?.name).toBe('b');
+    });
+  });
+
+  describe('auto-layout (M6)', () => {
+    const cluster = (over?: Partial<WorkspaceCluster>): WorkspaceCluster => ({
+      id: 'cluster-user',
+      name: 'Research',
+      position: { x: 0, y: 0 },
+      size: { width: 360, height: 260 },
+      ...over,
+    });
+
+    it('tidyGrid snaps cards onto the grid and saves before-autolayout first', () => {
+      useWorkspaceStore.getState().setTabs([
+        tab({ tabId: 1, position: { x: 80, y: 80 } }),
+        tab({ tabId: 2, position: { x: 360, y: 95 } }),
+        tab({ tabId: 3, position: { x: 80, y: 240 } }),
+      ]);
+
+      useWorkspaceStore.getState().tidyGrid();
+      const s = useWorkspaceStore.getState();
+
+      // Cards are on the regular grid, in reading order of their old spots.
+      expect(s.tabs.find((t) => t.tabId === 1)?.position).toEqual({ x: 80, y: 80 });
+      expect(s.tabs.find((t) => t.tabId === 2)?.position).toEqual({ x: 360, y: 80 });
+      expect(s.tabs.find((t) => t.tabId === 3)?.position).toEqual({ x: 640, y: 80 });
+
+      // Safety snapshot captured the PRE-tidy arrangement (M6 item 3).
+      const snap = s.namedSnapshots.find((x) => x.name === AUTO_LAYOUT_SNAPSHOT_NAME);
+      expect(snap).toBeDefined();
+      const snapTab2 = snap!.tabs.find((t) => t.tabId === 2);
+      expect(snapTab2?.position).toEqual({ x: 360, y: 95 }); // pre-tidy
+      expect(snapTab2?.clusterId).toBeUndefined();
+    });
+
+    it('restoring before-autolayout brings the previous arrangement back', () => {
+      useWorkspaceStore.getState().setTabs([
+        tab({ tabId: 1, position: { x: 123, y: 45 } }),
+        tab({ tabId: 2, position: { x: 900, y: 700 } }),
+      ]);
+      useWorkspaceStore.getState().tidyGrid();
+
+      const snap = useWorkspaceStore
+        .getState()
+        .namedSnapshots.find((x) => x.name === AUTO_LAYOUT_SNAPSHOT_NAME)!;
+      useWorkspaceStore.getState().restoreNamedSnapshot(snap.id);
+
+      const s = useWorkspaceStore.getState();
+      expect(s.tabs.find((t) => t.tabId === 1)?.position).toEqual({ x: 123, y: 45 });
+      expect(s.tabs.find((t) => t.tabId === 2)?.position).toEqual({ x: 900, y: 700 });
+    });
+
+    it('tidyGrid overwrites (not duplicates) the safety snapshot on each run', () => {
+      useWorkspaceStore.getState().setTabs([tab({ tabId: 1, position: { x: 50, y: 60 } })]);
+      useWorkspaceStore.getState().tidyGrid();
+      const firstId = useWorkspaceStore
+        .getState()
+        .namedSnapshots.find((x) => x.name === AUTO_LAYOUT_SNAPSHOT_NAME)!.id;
+
+      useWorkspaceStore.getState().moveTab(1, { x: 500, y: 500 });
+      useWorkspaceStore.getState().tidyGrid();
+
+      const snaps = useWorkspaceStore
+        .getState()
+        .namedSnapshots.filter((x) => x.name === AUTO_LAYOUT_SNAPSHOT_NAME);
+      expect(snaps).toHaveLength(1); // overwritten in place
+      expect(snaps[0]!.id).not.toBe(firstId);
+      // It now captures the state before the SECOND tidy.
+      expect(snaps[0]!.tabs.find((t) => t.tabId === 1)?.position).toEqual({ x: 500, y: 500 });
+    });
+
+    it('tidyGrid keeps cluster membership (purely logical, D16) and does not move frames', () => {
+      const c = cluster();
+      useWorkspaceStore.getState().setTabs([
+        tab({ tabId: 1, position: { x: 80, y: 80 }, clusterId: c.id }),
+        tab({ tabId: 2, position: { x: 360, y: 80 } }),
+      ]);
+      useWorkspaceStore.setState({ clusters: [c] });
+
+      useWorkspaceStore.getState().tidyGrid();
+      const s = useWorkspaceStore.getState();
+
+      expect(s.tabs.find((t) => t.tabId === 1)?.clusterId).toBe(c.id); // membership kept
+      expect(s.tabs.find((t) => t.tabId === 2)?.clusterId).toBeUndefined();
+      expect(s.clusters).toEqual([c]); // frames untouched
+    });
+
+    it('groupByDomain creates domain clusters, assigns unclustered tabs only', () => {
+      const c = cluster();
+      useWorkspaceStore.getState().setTabs([
+        tab({ tabId: 1, domain: 'github.com', clusterId: c.id }), // untouched
+        tab({ tabId: 2, domain: 'github.com' }),
+        tab({ tabId: 3, domain: '' }), // → Other
+      ]);
+      useWorkspaceStore.setState({ clusters: [c] });
+
+      useWorkspaceStore.getState().groupByDomain();
+      const s = useWorkspaceStore.getState();
+
+      expect(s.clusters).toHaveLength(3);
+      expect(s.clusters[0]).toEqual(c); // existing cluster untouched
+      const github = s.clusters.find((x) => x.name === 'github.com')!;
+      const other = s.clusters.find((x) => x.name === 'Other')!;
+      expect(s.tabs.find((t) => t.tabId === 1)?.clusterId).toBe(c.id);
+      expect(s.tabs.find((t) => t.tabId === 2)?.clusterId).toBe(github.id);
+      expect(s.tabs.find((t) => t.tabId === 3)?.clusterId).toBe(other.id);
+
+      // Safety snapshot captured the pre-mutation state.
+      const snap = s.namedSnapshots.find((x) => x.name === AUTO_LAYOUT_SNAPSHOT_NAME)!;
+      expect(snap.clusters).toHaveLength(1);
+      expect(snap.tabs.find((t) => t.tabId === 2)?.clusterId).toBeUndefined();
+    });
+
+    it('groupByDomain is idempotent: a second click adds nothing', () => {
+      useWorkspaceStore.getState().setTabs([
+        tab({ tabId: 1, domain: 'github.com' }),
+        tab({ tabId: 2, domain: 'example.com' }),
+      ]);
+      useWorkspaceStore.getState().groupByDomain();
+      const afterFirst = useWorkspaceStore.getState();
+
+      useWorkspaceStore.getState().groupByDomain();
+      const s = useWorkspaceStore.getState();
+
+      expect(s.clusters).toHaveLength(afterFirst.clusters.length); // no new clusters
+      expect(s.tabs.find((t) => t.tabId === 1)?.clusterId).toBe(
+        afterFirst.tabs.find((t) => t.tabId === 1)?.clusterId,
+      );
+    });
+
+    it('auto-layout grid output never overlaps: every card on a unique lattice slot', () => {
+      const tabs = Array.from({ length: 10 }, (_, i) =>
+        tab({ tabId: i + 1, position: { x: (i * 137) % 600, y: (i * 89) % 500 } }),
+      );
+      useWorkspaceStore.getState().setTabs(tabs);
+
+      useWorkspaceStore.getState().tidyGrid();
+      const seen = new Set<string>();
+      for (const t of useWorkspaceStore.getState().tabs) {
+        const key = `${t.position.x}:${t.position.y}`;
+        expect(seen.has(key)).toBe(false);
+        seen.add(key);
+        const { origin, columnWidth, rowHeight } = TIDY_GRID_DEFAULTS;
+        expect((t.position.x - origin.x) % columnWidth).toBe(0);
+        expect((t.position.y - origin.y) % rowHeight).toBe(0);
+      }
     });
   });
 });

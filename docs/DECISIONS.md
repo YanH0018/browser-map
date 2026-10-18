@@ -244,3 +244,60 @@ ADR-style. Newest last. Each entry: decision, rationale, consequences.
   focus→select + Space-on-card activation, selection→focus, Escape, and no
   hijacking while a real form control has focus). Axe-style deep audit
   remains out of scope per the M5 task statement.
+
+## D16 — Tidy grid: one regular grid, reading order, cluster membership stays logical
+
+- **Decision**: "Tidy grid" snaps every tab card onto a single regular
+  grid (default: 4 columns, origin (80,80), column pitch 280, row pitch
+  140 — matching the first-run cascade) in **reading order of the current
+  positions**: cards are sorted by the grid cell they currently occupy
+  (nearest-cell rounding, row-major), ties broken by x, y, then tabId.
+  Cluster membership is treated as **purely logical**: cards that belong
+  to a cluster get ordinary grid slots like any other card, and cluster
+  frames are NOT moved or re-packed. The algorithm is a pure function
+  (`lib/autoLayout.ts`, `tidyGridPositions`) returning a tabId→position
+  map; the store applies it, UI only wires the button.
+- **Rationale**: a single grid is deterministic, trivially overlap-free
+  (uniform card size < pitch, one slot per card) and easy to verify in
+  tests. Re-packing members inside/near their cluster frames would couple
+  the tidy algorithm to frame geometry and size (frames are user-sized),
+  risk pushing cards off-canvas, and contradict D13 — assignment is by
+  explicit drop, not spatial containment. Keeping membership logical means
+  tidy never changes *which* cluster a card belongs to, only where cards
+  sit; the user's grouping survives untouched.
+- **Consequences**: after tidy, a card assigned to a cluster may sit
+  outside that cluster's frame (consistent with D13 semantics). Users who
+  want spatial grouping use "Group by domain" (D17) and drag. The grid
+  geometry is a documented constant, not user-configurable (YAGNI).
+
+## D17 — Group by domain + auto-layout safety snapshot
+
+- **Decision**: "Group by domain" creates one new cluster per distinct
+  domain among **unclustered** tabs, named after the domain (tabs without
+  a parseable domain — chrome://, data: — group under "Other"). Tabs
+  already in a cluster keep their assignment; existing clusters are never
+  renamed, moved or deleted. New clusters get stable ids
+  (`cluster-domain-<domain>`, numeric suffix on collision), the default
+  frame size, and cascade positions that never overlap existing frames.
+  Domains are processed in sorted (code-unit) order so the result is
+  deterministic and independent of tab array order. The algorithm is pure
+  (`lib/autoLayout.ts`, `groupByDomain` → new clusters + tabId→clusterId
+  assignments); the store applies it. **Safety**: before ANY auto-layout
+  mutation (tidy or group-by-domain) the store upserts a named snapshot
+  `before-autolayout` (M3 infrastructure) capturing the pre-mutation
+  canvas state; it is overwritten in place on every run, so one click of
+  Restore always brings back the arrangement that existed before the last
+  auto-layout.
+- **Rationale**: domain is already a normalized field on every tab, so
+  grouping needs no URL parsing at layout time. Restricting to unclustered
+  tabs and leaving existing clusters alone makes the operation additive
+  and non-destructive — a user's manual organization is never clobbered,
+  and re-clicking is a no-op (idempotent). The safety snapshot reuses the
+  M3 named-snapshot path unchanged instead of inventing an undo stack:
+  one known, user-visible artifact (a snapshot chip in the toolbar) that
+  also works across reloads.
+- **Consequences**: clicking "Group by domain" twice adds nothing the
+  second time. A tab that navigates to a new domain is NOT re-grouped
+  automatically (grouping is an explicit click, not a live rule). The
+  `before-autolayout` snapshot always reflects the state before the most
+  recent auto-layout click, not a history of all previous states.
