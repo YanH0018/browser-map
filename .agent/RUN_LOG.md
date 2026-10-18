@@ -504,3 +504,51 @@ Notes:              Item 4 complete (D15) — M5 is now fully done. Cards are
                     feature/m5 awaits human merge; next milestone per
                     ROADMAP is M6 (automatic layout algorithms).
 ```
+
+---
+
+```
+Task:               M6 — automatic layout (iteration 3 of fresh-context loop)
+Model:              pi coding agent, 128K ctx
+Elapsed time:       ~35 min
+Tool calls:         ~40
+Build attempts:     2 (1st: unit loop red — 2 stale expectations from the
+                    interrupted iteration-2 run; 2nd: full loop PASS)
+Failed tests:       2 (both wrong test expectations, not algorithm bugs:
+                    slot index 2 in a 4-column grid is (640,80), not
+                    (80,220); fixed in tests/autoLayout.test.ts +
+                    tests/workspaceStore.test.ts)
+Self-recovered:     1 (recovered uncommitted iteration-2 work — pure
+                    algorithms, store actions, unit tests, D16/D17 docs —
+                    verified it, fixed the two stale expectations)
+Human intervention: 0
+Final commit:       3d5890a on feature/m6 (code + tests + docs)
+Status:             PASS
+Notes:              M6 complete. lib/autoLayout.ts (pure, deterministic):
+                    tidyGridPositions (4-col lattice origin (80,80), pitch
+                    280x140; reading order = nearest-cell row-major sort,
+                    x/y/tabId tie-breaks; cluster membership purely logical
+                    per D16 — frames untouched) and groupByDomain (one new
+                    cluster per distinct domain among UNCLUSTERED tabs,
+                    "Other" fallback for unparseable domains; existing
+                    clusters/assignments never touched; stable ids
+                    cluster-domain-<domain> with numeric suffix on
+                    collision; cascade slots never overlap existing frames;
+                    domains sorted → deterministic, D17). Store actions
+                    tidyGrid/groupByDomain both upsert the named snapshot
+                    `before-autolayout` (overwritten in place) BEFORE
+                    mutating, so one Restore click reverts the last
+                    auto-layout. Toolbar gained "Tidy grid" + "Group by
+                    domain" buttons (aria-labeled, .bw-autolayout group).
+                    Tests: 12 unit in tests/autoLayout.test.ts + 7 store
+                    tests (snapshot-before-mutate, overwrite-not-duplicate,
+                    restore round-trip, idempotent re-click); e2e "tidy
+                    grid" spec: click Tidy → every persisted card on the
+                    lattice with unique slots, before-autolayout matches
+                    pre-tidy storage state, reload → layout persists. Full
+                    loop green: compile, 132/132 unit (was 112), wxt build
+                    (455.60 kB), e2e 7/7 in headed Chromium. Remaining:
+                    none for M6 — branch feature/m6 awaits human merge;
+                    next milestone per ROADMAP is M7 (local embeddings +
+                    semantic clustering).
+```

@@ -61,6 +61,31 @@ build, e2e 3/3 green at `60e9463`).
 M5 complete: all four items verified (compile, 112/112 unit, build,
 e2e 6/6 at `e5f35ef`). Branch `feature/m5` awaits merge (human).
 
+## Now (M6 — Automatic layout)
+
+- [x] Tidy grid: one click snaps every card onto a regular grid in
+      reading order of current positions (M6) — pure `tidyGridPositions`
+      in `lib/autoLayout.ts` (4-col lattice, nearest-cell reading order,
+      tabId tie-break); cluster membership stays purely logical (D16);
+      store action `tidyGrid` + toolbar button (`3d5890a`)
+- [x] Group by domain: one new cluster per distinct domain among
+      unclustered tabs, named after the domain ("Other" fallback);
+      existing clusters/assignments never touched; stable ids, no
+      overlapping frames, deterministic (D17) — pure `groupByDomain` +
+      store action + toolbar button (`3d5890a`)
+- [x] Safety: every auto-layout mutation first upserts the named
+      snapshot `before-autolayout` (overwritten in place each run), so
+      one click of Restore brings back the previous arrangement (`3d5890a`)
+- [x] Tests: 12 unit tests in `tests/autoLayout.test.ts` (determinism,
+      no-overlap lattice, domain grouping correctness) + 7 store tests
+      (snapshot-before-mutate, overwrite-not-duplicate, restore round-
+      trip, idempotency); e2e "tidy grid" spec: click Tidy → all cards on
+      the lattice with unique slots, `before-autolayout` matches pre-tidy
+      storage state, reload → layout persists (`3d5890a`)
+
+M6 complete: all four items verified (compile, 132/132 unit, build,
+e2e 7/7 at `3d5890a`). Branch `feature/m6` awaits merge (human).
+
 ## Done (M4 — Robust browser synchronization)
 
 - [x] Tab identity by tabId, not URL (M4) — `lib/tabIdentity.ts`
@@ -110,7 +135,6 @@ e2e 4/4 at `a880f4a`).
 
 - [ ] Real Playwright e2e suite per `tests/e2e/README.md` (M4)
 - [ ] Visual test loop: screenshot → vision-model inspection (M5)
-- [ ] Automatic layout algorithms (M6)
 - [ ] Local embeddings + semantic clustering (M7)
 - [ ] Natural-language workspace commands via local model (M8)
 

@@ -1,7 +1,13 @@
 # CURRENT_TASK.md
 
 - **Task**: M6 — Automatic layout (branch `feature/m6`)
-- **Status**: active (started 2026-10-18, engine: pi coding agent, 128K ctx)
+- **Status**: done (2026-10-18, engine: pi coding agent, 128K ctx) — all four
+  items implemented and verified at `3d5890a`: pure algorithms in
+  `lib/autoLayout.ts` (tidy grid D16, group-by-domain D17), store actions
+  with `before-autolayout` safety snapshot, toolbar buttons, 19 new unit
+  tests + e2e "tidy grid" spec. Full loop green: compile, 132/132 unit,
+  build (455.60 kB), e2e 7/7. Branch `feature/m6` awaits human merge.
+  Next milestone per ROADMAP: M7 (local embeddings + semantic clustering).
 
 ## M6 task statement
 
